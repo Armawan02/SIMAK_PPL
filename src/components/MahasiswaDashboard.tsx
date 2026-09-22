@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Group, Task, TaskStatus, GroupMember, User } from "../types";
+import { Group, Task, TaskStatus, GroupMember, User, OFFICIAL_TEAM_ROLES } from "../types";
 import { 
   subscribeToTasks, 
   subscribeToMembers, 
@@ -7,7 +7,9 @@ import {
   deleteTask, 
   addTask, 
   updateTaskDetails,
-  addMemberToGroup
+  addMemberToGroup,
+  removeMemberFromGroup,
+  applyOfficialTeamStructure
 } from "../lib/pplService";
 import { TaskModal } from "./TaskModal";
 import { 
@@ -28,7 +30,12 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  GraduationCap
+  GraduationCap,
+  BookOpen,
+  Check,
+  Award,
+  Layers,
+  Info
 } from "lucide-react";
 
 interface MahasiswaDashboardProps {
@@ -57,9 +64,13 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [memberModalTab, setMemberModalTab] = useState<"official_roles" | "roster">("official_roles");
   const [newMemberNim, setNewMemberNim] = useState("");
-  const [newMemberName, setNewMemberName] = useState("");
-  const [newMemberRole, setNewMemberRole] = useState("Developer");
+  const [newMemberName, setNewMemberName] = useState(OFFICIAL_TEAM_ROLES[0].defaultMemberName);
+  const [newMemberRole, setNewMemberRole] = useState(OFFICIAL_TEAM_ROLES[0].role);
+  const [isApplyingRoles, setIsApplyingRoles] = useState(false);
+  const [roleActionNotice, setRoleActionNotice] = useState<string | null>(null);
+  const [selectedMemberDetail, setSelectedMemberDetail] = useState<GroupMember | null>(null);
 
   // Realtime subscription to tasks & members for current group
   useEffect(() => {
@@ -153,20 +164,58 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
     }
   };
 
+  const handleRoleSelectChange = (roleName: string) => {
+    setNewMemberRole(roleName);
+    const def = OFFICIAL_TEAM_ROLES.find((r) => r.role === roleName);
+    if (def) {
+      if (!newMemberName || OFFICIAL_TEAM_ROLES.some((r) => r.defaultMemberName === newMemberName)) {
+        setNewMemberName(def.defaultMemberName);
+      }
+    }
+  };
+
   const handleAddMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemberNim.trim() || !newMemberName.trim()) return;
     try {
+      const roleDef = OFFICIAL_TEAM_ROLES.find((r) => r.role === newMemberRole);
       await addMemberToGroup(group.id, {
         nim: newMemberNim.trim(),
         name: newMemberName.trim(),
         roleInGroup: newMemberRole,
+        roleDescription: roleDef?.description || "",
       });
+      setRoleActionNotice(`Anggota ${newMemberName.trim()} (${newMemberRole}) berhasil disimpan ke database!`);
       setNewMemberNim("");
-      setNewMemberName("");
-      setIsMemberModalOpen(false);
+      setNewMemberName(OFFICIAL_TEAM_ROLES[0].defaultMemberName);
+      setTimeout(() => setRoleActionNotice(null), 3500);
     } catch (err) {
       console.error("Failed to add member:", err);
+    }
+  };
+
+  const handleApplyOfficialRoles = async () => {
+    setIsApplyingRoles(true);
+    try {
+      await applyOfficialTeamStructure(group.id, currentUser.nim);
+      setRoleActionNotice("8 Peran tim resmi berhasil diterapkan dan disimpan ke Firestore!");
+      setTimeout(() => setRoleActionNotice(null), 4000);
+    } catch (err) {
+      console.error("Failed to apply official roles:", err);
+    } finally {
+      setIsApplyingRoles(false);
+    }
+  };
+
+  const handleDeleteMember = async (memberId: string, memberName: string) => {
+    if (window.confirm(`Hapus anggota ${memberName} dari kelompok?`)) {
+      try {
+        await removeMemberFromGroup(group.id, memberId);
+        setRoleActionNotice(`Anggota ${memberName} telah dihapus.`);
+        setTimeout(() => setRoleActionNotice(null), 3000);
+      } catch (err) {
+        console.error("Failed to delete member:", err);
+      }
     }
   };
 
@@ -236,22 +285,41 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
           <div className="pt-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             {/* Team Members */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mr-2">
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mr-1">
                 <Users className="w-4 h-4 text-slate-400" />
                 <span>Anggota ({members.length}):</span>
               </div>
               {members.map((m, idx) => (
-                <div
+                <button
                   key={`member-pill-${m.id || m.nim}-${idx}`}
-                  className="px-2.5 py-1 rounded-xl bg-slate-950/80 border border-slate-800 text-xs flex items-center gap-1.5"
+                  onClick={() => {
+                    setSelectedMemberDetail(m);
+                    setMemberModalTab("roster");
+                    setIsMemberModalOpen(true);
+                  }}
+                  className="px-2.5 py-1 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs flex items-center gap-1.5 transition-all cursor-pointer group"
+                  title="Klik untuk melihat detail tugas & peran"
                 >
-                  <span className="w-2 h-2 rounded-full bg-blue-400" />
+                  <span className="w-2 h-2 rounded-full bg-blue-400 group-hover:scale-125 transition-transform" />
                   <span className="font-medium text-slate-200">{m.name}</span>
-                  <span className="text-[10px] text-slate-500 font-normal">({m.roleInGroup})</span>
-                </div>
+                  <span className="text-[10px] text-blue-400 font-normal">({m.roleInGroup})</span>
+                </button>
               ))}
               <button
-                onClick={() => setIsMemberModalOpen(true)}
+                onClick={() => {
+                  setMemberModalTab("official_roles");
+                  setIsMemberModalOpen(true);
+                }}
+                className="px-2.5 py-1 rounded-xl bg-blue-900/30 hover:bg-blue-800/50 border border-blue-500/30 text-blue-300 text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                <span className="font-medium">8 Peran Tim</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMemberModalTab("roster");
+                  setIsMemberModalOpen(true);
+                }}
                 className="px-2 py-1 rounded-xl border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 text-xs flex items-center gap-1 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -514,85 +582,302 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
         members={members}
       />
 
-      {/* Member Management Modal */}
+      {/* Member Management & Official Roles Modal */}
       {isMemberModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h3 className="text-base font-bold text-slate-100 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-400" />
-              Kelola Anggota {group.name}
-            </h3>
-
-            {/* Existing Members */}
-            <div className="space-y-2 mb-5 max-h-52 overflow-y-auto pr-1">
-              {members.map((m, idx) => (
-                <div
-                  key={`member-modal-row-${m.id || m.nim}-${idx}`}
-                  className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
-                >
-                  <div>
-                    <p className="font-semibold text-slate-200">{m.name}</p>
-                    <p className="text-[10px] text-slate-400 font-mono">NIM: {m.nim}</p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded bg-blue-900/40 text-blue-300 border border-blue-500/20 text-[10px]">
-                    {m.roleInGroup}
-                  </span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
-              ))}
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
+                    Struktur Peran Tim &amp; Anggota
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Kelompok: <span className="text-blue-400 font-semibold">{group.name}</span> &bull; {group.projectTitle}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsMemberModalOpen(false);
+                  setSelectedMemberDetail(null);
+                }}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 flex items-center justify-center text-sm transition-colors cursor-pointer"
+              >
+                &times;
+              </button>
             </div>
 
-            {/* Add New Member Form */}
-            <form onSubmit={handleAddMemberSubmit} className="pt-4 border-t border-slate-800 space-y-3">
-              <p className="text-xs font-semibold text-slate-300">Tambah Anggota Baru</p>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  required
-                  placeholder="NIM Mahasiswa"
-                  value={newMemberNim}
-                  onChange={(e) => setNewMemberNim(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                />
-                <input
-                  type="text"
-                  required
-                  placeholder="Nama Lengkap"
-                  value={newMemberName}
-                  onChange={(e) => setNewMemberName(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                />
+            {/* Notification Banner */}
+            {roleActionNotice && (
+              <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fadeIn">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{roleActionNotice}</span>
               </div>
+            )}
 
-              <select
-                value={newMemberRole}
-                onChange={(e) => setNewMemberRole(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+            {/* Modal Tabs */}
+            <div className="flex border-b border-slate-800 mt-4 gap-2">
+              <button
+                onClick={() => setMemberModalTab("official_roles")}
+                className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border-b-2 ${
+                  memberModalTab === "official_roles"
+                    ? "border-blue-500 text-blue-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
               >
-                <option value="Ketua Tim">Ketua Tim</option>
-                <option value="Frontend Developer">Frontend Developer</option>
-                <option value="Backend Developer">Backend Developer</option>
-                <option value="Fullstack Developer">Fullstack Developer</option>
-                <option value="UI/UX Designer">UI/UX Designer</option>
-                <option value="QA Tester">QA Tester</option>
-                <option value="Technical Writer">Technical Writer</option>
-              </select>
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>8 Peran &amp; Tanggung Jawab Resmi</span>
+              </button>
+              <button
+                onClick={() => setMemberModalTab("roster")}
+                className={`pb-2.5 px-3 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border-b-2 ${
+                  memberModalTab === "roster"
+                    ? "border-blue-500 text-blue-400"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Daftar Anggota ({members.length})</span>
+              </button>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsMemberModalOpen(false)}
-                  className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 rounded-lg"
-                >
-                  Tutup
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold"
-                >
-                  Simpan Anggota
-                </button>
+            {/* Tab 1: 8 Official Roles & Sync */}
+            {memberModalTab === "official_roles" && (
+              <div className="flex-1 overflow-y-auto pt-4 pr-1 space-y-4">
+                <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                      Terapkan Struktur 8 Peran ke Tim Ini
+                    </h4>
+                    <p className="text-[11px] text-slate-300 mt-0.5">
+                      Menyimpan seluruh 8 personil (Armawan s.d. Rindi) beserta job description ke Cloud Firestore.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleApplyOfficialRoles}
+                    disabled={isApplyingRoles}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs shrink-0 shadow-lg shadow-blue-600/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    {isApplyingRoles ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Menerapkan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Terapkan 8 Peran ke Database</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-2">
+                  {OFFICIAL_TEAM_ROLES.map((rDef) => {
+                    // Check if member already registered with this role
+                    const matchedMember = members.find(
+                      (m) =>
+                        m.roleInGroup.toLowerCase() === rDef.role.toLowerCase() ||
+                        m.name.toLowerCase().includes(rDef.defaultMemberName.toLowerCase())
+                    );
+
+                    return (
+                      <div
+                        key={`official-role-card-${rDef.id}`}
+                        className={`p-3.5 rounded-2xl border transition-all ${
+                          matchedMember
+                            ? "bg-slate-950/80 border-blue-500/40"
+                            : "bg-slate-950/40 border-slate-800/80"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-blue-900/40 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center justify-center">
+                              {rDef.id}
+                            </span>
+                            <div>
+                              <h5 className="text-xs font-bold text-slate-100">{rDef.role}</h5>
+                              <p className="text-[11px] text-blue-400 font-medium">
+                                Personil: {rDef.defaultMemberName}
+                              </p>
+                            </div>
+                          </div>
+                          {matchedMember && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold shrink-0">
+                              Aktif
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed mt-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+                          {rDef.description}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </form>
+            )}
+
+            {/* Tab 2: Roster & Add Form */}
+            {memberModalTab === "roster" && (
+              <div className="flex-1 overflow-y-auto pt-4 pr-1 space-y-4">
+                {/* Highlighted Detail if Clicked from Dashboard */}
+                {selectedMemberDetail && (
+                  <div className="p-3.5 rounded-2xl bg-blue-950/40 border border-blue-500/30 text-xs">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <UserIcon className="w-4 h-4 text-blue-400" />
+                        <span className="font-bold text-slate-100">{selectedMemberDetail.name}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">({selectedMemberDetail.nim})</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold text-[10px]">
+                        {selectedMemberDetail.roleInGroup}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 leading-relaxed">
+                      {selectedMemberDetail.roleDescription ||
+                        OFFICIAL_TEAM_ROLES.find(
+                          (r) => r.role.toLowerCase() === selectedMemberDetail.roleInGroup.toLowerCase()
+                        )?.description ||
+                        "Bertanggung jawab dalam pengerjaan dan koordinasi modul tim proyek perangkat lunak."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Existing Members List */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-300 mb-2 flex items-center justify-between">
+                    <span>Anggota Terdaftar di Database ({members.length})</span>
+                    {members.length === 0 && (
+                      <span className="text-[10px] text-amber-400 font-normal">Belum ada anggota di Firestore</span>
+                    )}
+                  </h4>
+
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {members.map((m, idx) => {
+                      const desc =
+                        m.roleDescription ||
+                        OFFICIAL_TEAM_ROLES.find((r) => r.role.toLowerCase() === m.roleInGroup.toLowerCase())
+                          ?.description;
+
+                      return (
+                        <div
+                          key={`member-modal-row-${m.id || m.nim}-${idx}`}
+                          className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-100">{m.name}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">NIM: {m.nim}</span>
+                              </div>
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-blue-900/30 text-blue-300 border border-blue-500/20 text-[10px] font-medium">
+                                {m.roleInGroup}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMember(m.id || `member-${m.nim}`, m.name)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
+                              title="Hapus dari kelompok"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {desc && (
+                            <p className="text-[10px] text-slate-400 mt-2 pt-2 border-t border-slate-900 line-clamp-2">
+                              {desc}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Add New Member Form */}
+                <form onSubmit={handleAddMemberSubmit} className="pt-4 border-t border-slate-800 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-blue-400" />
+                    Tambah Anggota Manual
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-1">NIM Mahasiswa:</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: 220101001"
+                        value={newMemberNim}
+                        onChange={(e) => setNewMemberNim(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-1">Nama Mahasiswa:</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Nama Lengkap"
+                        value={newMemberName}
+                        onChange={(e) => setNewMemberName(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-1">Peran dalam Tim:</label>
+                    <select
+                      value={newMemberRole}
+                      onChange={(e) => handleRoleSelectChange(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                    >
+                      {OFFICIAL_TEAM_ROLES.map((r) => (
+                        <option key={`add-opt-role-${r.id}`} value={r.role}>
+                          {r.id}. {r.role} (Contoh: {r.defaultMemberName})
+                        </option>
+                      ))}
+                    </select>
+                    {(() => {
+                      const def = OFFICIAL_TEAM_ROLES.find((r) => r.role === newMemberRole);
+                      return def ? (
+                        <p className="text-[10px] text-slate-400 mt-1 italic">{def.description}</p>
+                      ) : null;
+                    })()}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/30 cursor-pointer"
+                    >
+                      Simpan Anggota
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="pt-4 border-t border-slate-800 flex justify-end mt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMemberModalOpen(false);
+                  setSelectedMemberDetail(null);
+                }}
+                className="px-4 py-2 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl font-medium transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

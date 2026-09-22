@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { User, UserRole, Group } from "../types";
+import { User, UserRole, Group, OFFICIAL_TEAM_ROLES } from "../types";
 import { authenticateUser, registerUser } from "../lib/pplService";
 import { 
   FolderKanban, 
@@ -42,7 +42,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
   const [regNewGroupName, setRegNewGroupName] = useState("");
   const [regNewProjectTitle, setRegNewProjectTitle] = useState("");
   const [regNewDescription, setRegNewDescription] = useState("");
-  const [regRoleInGroup, setRegRoleInGroup] = useState("Frontend Developer");
+  const [regRoleInGroup, setRegRoleInGroup] = useState(OFFICIAL_TEAM_ROLES[0].role);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +150,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
               projectTitle: regNewProjectTitle || `Proyek PPL ${regNewGroupName}`,
               projectDescription: regNewDescription || "Pengembangan aplikasi perangkat lunak",
               roleInGroup: regRoleInGroup,
+              roleDescription: OFFICIAL_TEAM_ROLES.find((r) => r.role === regRoleInGroup)?.description || "",
             }
           : undefined
       );
@@ -454,20 +455,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                     </select>
 
                     <div className="mt-3">
-                      <label className="block text-[11px] text-slate-400 mb-1">Peran Anda di Tim:</label>
+                      <label className="block text-[11px] text-slate-400 mb-1">
+                        Peran Anda di Tim (Berdasarkan Struktur Resmi PPL):
+                      </label>
                       <select
                         value={regRoleInGroup}
                         onChange={(e) => setRegRoleInGroup(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
                       >
-                        <option value="Frontend Developer">Frontend Developer</option>
-                        <option value="Backend Developer">Backend Developer</option>
-                        <option value="UI/UX Designer">UI/UX Designer</option>
-                        <option value="Mobile App Developer">Mobile App Developer</option>
-                        <option value="QA / Tester">QA &amp; Software Tester</option>
-                        <option value="DevOps Engineer">DevOps Engineer</option>
-                        <option value="System Analyst">System Analyst</option>
+                        {OFFICIAL_TEAM_ROLES.map((r) => (
+                          <option key={`join-role-${r.id}`} value={r.role}>
+                            {r.id}. {r.role} (Contoh: {r.defaultMemberName})
+                          </option>
+                        ))}
                       </select>
+                      {(() => {
+                        const rDef = OFFICIAL_TEAM_ROLES.find((r) => r.role === regRoleInGroup);
+                        return rDef ? (
+                          <div className="mt-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300">
+                            <span className="font-semibold text-blue-400">Deskripsi Tugas:</span>{" "}
+                            {rDef.description}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 ) : (
@@ -508,19 +518,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Peran Anda di Tim:</label>
+                      <label className="block text-[11px] text-slate-400 mb-1">
+                        Peran Anda di Tim (Berdasarkan Struktur Resmi PPL):
+                      </label>
                       <select
                         value={regRoleInGroup}
                         onChange={(e) => setRegRoleInGroup(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
                       >
-                        <option value="Ketua & Fullstack Developer">Ketua &amp; Fullstack Developer</option>
-                        <option value="Ketua Tim">Ketua Tim</option>
-                        <option value="Frontend Developer">Frontend Developer</option>
-                        <option value="Backend Developer">Backend Developer</option>
-                        <option value="UI/UX Designer">UI/UX Designer</option>
-                        <option value="QA / Tester">QA &amp; Software Tester</option>
+                        {OFFICIAL_TEAM_ROLES.map((r) => (
+                          <option key={`create-role-${r.id}`} value={r.role}>
+                            {r.id}. {r.role} (Contoh: {r.defaultMemberName})
+                          </option>
+                        ))}
                       </select>
+                      {(() => {
+                        const rDef = OFFICIAL_TEAM_ROLES.find((r) => r.role === regRoleInGroup);
+                        return rDef ? (
+                          <div className="mt-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300">
+                            <span className="font-semibold text-blue-400">Deskripsi Tugas:</span>{" "}
+                            {rDef.description}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 )}

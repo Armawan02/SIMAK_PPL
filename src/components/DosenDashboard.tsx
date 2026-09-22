@@ -325,8 +325,9 @@ export const DosenDashboard: React.FC<DosenDashboardProps> = ({
                       <span
                         key={`dosen-member-${group.id}-${m.id || m.nim}-${idx}`}
                         className="px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-300"
+                        title={m.roleInGroup}
                       >
-                        {m.name}
+                        {m.name} <span className="text-[9px] text-blue-400">({m.roleInGroup})</span>
                       </span>
                     ))}
                     {gMembers.length > 4 && (

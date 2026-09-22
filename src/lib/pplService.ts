@@ -49,6 +49,7 @@ export async function registerUser(
     projectTitle?: string;
     projectDescription?: string;
     roleInGroup?: string;
+    roleDescription?: string;
   }
 ): Promise<User> {
   const userId = `user-${Date.now()}`;
@@ -77,7 +78,8 @@ export async function registerUser(
         groupId: assignedGroupId,
         nim: userData.nim,
         name: userData.name,
-        roleInGroup: groupDetails.roleInGroup || "Ketua Tim",
+        roleInGroup: groupDetails.roleInGroup || "Project Manager",
+        roleDescription: groupDetails.roleDescription || "",
         id: `member-${userData.nim}`,
       });
     } catch (e) {
@@ -92,6 +94,7 @@ export async function registerUser(
         nim: userData.nim,
         name: userData.name,
         roleInGroup: groupDetails?.roleInGroup || "Anggota Tim",
+        roleDescription: groupDetails?.roleDescription || "",
         id: `member-${userData.nim}`,
       });
     } catch (e) {
@@ -302,6 +305,94 @@ export async function addMemberToGroup(
     groupId,
     id: memberId,
   });
+}
+
+// Update an existing member's role or details
+export async function updateMemberInGroup(
+  groupId: string,
+  memberId: string,
+  updates: Partial<Omit<GroupMember, "id" | "groupId">>
+): Promise<void> {
+  const memberRef = doc(db, "groups", groupId, "members", memberId);
+  await updateDoc(memberRef, updates);
+}
+
+// Remove a member from a group
+export async function removeMemberFromGroup(
+  groupId: string,
+  memberId: string
+): Promise<void> {
+  const memberRef = doc(db, "groups", groupId, "members", memberId);
+  await deleteDoc(memberRef);
+}
+
+// Apply the user's official 8-role team structure into the group
+export async function applyOfficialTeamStructure(
+  groupId: string,
+  currentUserNim?: string
+): Promise<void> {
+  const officialRoster = [
+    {
+      nim: currentUserNim || "220101001",
+      name: "Armawan",
+      roleInGroup: "Project Manager",
+      roleDescription:
+        "Mengatur jalannya proyek, mengkoordinasikan anggota tim, memastikan pengerjaan sesuai jadwal, serta mengawasi keseluruhan proses pengembangan sistem.",
+    },
+    {
+      nim: "220101002",
+      name: "Nur Avika",
+      roleInGroup: "System Analyst",
+      roleDescription:
+        "Melakukan analisis kebutuhan sistem, mengidentifikasi kebutuhan pengguna, membuat dokumentasi kebutuhan, dan membantu penyusunan alur sistem.",
+    },
+    {
+      nim: "220101003",
+      name: "Ria Ramadani",
+      roleInGroup: "System Designer",
+      roleDescription:
+        "Merancang desain sistem, membuat rancangan alur proses, serta membantu pembuatan diagram perancangan sistem.",
+    },
+    {
+      nim: "220101004",
+      name: "Ayudiah Cinta Putry",
+      roleInGroup: "UI/UX Designer",
+      roleDescription:
+        "Membuat rancangan tampilan aplikasi, menyusun desain antarmuka, serta memastikan tampilan sistem mudah digunakan oleh pengguna.",
+    },
+    {
+      nim: "220101005",
+      name: "Nur Indah Sari",
+      roleInGroup: "Database Designer",
+      roleDescription:
+        "Merancang struktur database, membuat ERD, menentukan tabel dan relasi antar data yang digunakan dalam sistem.",
+    },
+    {
+      nim: "220101006",
+      name: "Muh. Sugandi",
+      roleInGroup: "Frontend Programmer/Developer",
+      roleDescription:
+        "Merancang struktur antarmuka/frontend aplikasi, mengimplementasikan desain UI/UX ke dalam kode interaktif, dan integrasi API client.",
+    },
+    {
+      nim: "220101007",
+      name: "Muh. Sugandi",
+      roleInGroup: "Backend Programmer/Developer",
+      roleDescription:
+        "Mengembangkan logika sistem, membuat fitur backend menggunakan Laravel, mengelola database, serta melakukan integrasi antar fitur.",
+    },
+    {
+      nim: "220101008",
+      name: "Rindi",
+      roleInGroup: "Tester/QA",
+      roleDescription:
+        "Melakukan pengujian sistem, memastikan fitur berjalan dengan baik, menemukan bug, dan membantu proses evaluasi serta perbaikan sistem.",
+    },
+  ];
+
+  for (const person of officialRoster) {
+    await addMemberToGroup(groupId, person);
+  }
 }
 
 // DEMO_PRESET_USERS exported as empty array for production
