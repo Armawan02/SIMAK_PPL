@@ -465,7 +465,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                       >
                         {OFFICIAL_TEAM_ROLES.map((r) => (
                           <option key={`join-role-${r.id}`} value={r.role}>
-                            {r.id}. {r.role} (Contoh: {r.defaultMemberName})
+                            {r.role}
                           </option>
                         ))}
                       </select>
@@ -528,7 +528,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                       >
                         {OFFICIAL_TEAM_ROLES.map((r) => (
                           <option key={`create-role-${r.id}`} value={r.role}>
-                            {r.id}. {r.role} (Contoh: {r.defaultMemberName})
+                            {r.role}
                           </option>
                         ))}
                       </select>

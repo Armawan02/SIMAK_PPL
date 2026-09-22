@@ -66,7 +66,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [memberModalTab, setMemberModalTab] = useState<"official_roles" | "roster">("official_roles");
   const [newMemberNim, setNewMemberNim] = useState("");
-  const [newMemberName, setNewMemberName] = useState(OFFICIAL_TEAM_ROLES[0].defaultMemberName);
+  const [newMemberName, setNewMemberName] = useState("");
   const [newMemberRole, setNewMemberRole] = useState(OFFICIAL_TEAM_ROLES[0].role);
   const [isApplyingRoles, setIsApplyingRoles] = useState(false);
   const [roleActionNotice, setRoleActionNotice] = useState<string | null>(null);
@@ -166,12 +166,6 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
 
   const handleRoleSelectChange = (roleName: string) => {
     setNewMemberRole(roleName);
-    const def = OFFICIAL_TEAM_ROLES.find((r) => r.role === roleName);
-    if (def) {
-      if (!newMemberName || OFFICIAL_TEAM_ROLES.some((r) => r.defaultMemberName === newMemberName)) {
-        setNewMemberName(def.defaultMemberName);
-      }
-    }
   };
 
   const handleAddMemberSubmit = async (e: React.FormEvent) => {
@@ -187,7 +181,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
       });
       setRoleActionNotice(`Anggota ${newMemberName.trim()} (${newMemberRole}) berhasil disimpan ke database!`);
       setNewMemberNim("");
-      setNewMemberName(OFFICIAL_TEAM_ROLES[0].defaultMemberName);
+      setNewMemberName("");
       setTimeout(() => setRoleActionNotice(null), 3500);
     } catch (err) {
       console.error("Failed to add member:", err);
@@ -656,7 +650,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                       Terapkan Struktur 8 Peran ke Tim Ini
                     </h4>
                     <p className="text-[11px] text-slate-300 mt-0.5">
-                      Menyimpan seluruh 8 personil (Armawan s.d. Rindi) beserta job description ke Cloud Firestore.
+                      Menyimpan seluruh 8 struktur peran standar beserta job description ke Cloud Firestore.
                     </p>
                   </div>
                   <button
@@ -682,9 +676,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                   {OFFICIAL_TEAM_ROLES.map((rDef) => {
                     // Check if member already registered with this role
                     const matchedMember = members.find(
-                      (m) =>
-                        m.roleInGroup.toLowerCase() === rDef.role.toLowerCase() ||
-                        m.name.toLowerCase().includes(rDef.defaultMemberName.toLowerCase())
+                      (m) => m.roleInGroup.toLowerCase() === rDef.role.toLowerCase()
                     );
 
                     return (
@@ -698,19 +690,20 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-blue-900/40 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center justify-center">
-                              {rDef.id}
-                            </span>
+                            <div className="w-7 h-7 rounded-lg bg-blue-900/40 border border-blue-500/30 text-blue-300 flex items-center justify-center shrink-0">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                            </div>
                             <div>
                               <h5 className="text-xs font-bold text-slate-100">{rDef.role}</h5>
-                              <p className="text-[11px] text-blue-400 font-medium">
-                                Personil: {rDef.defaultMemberName}
-                              </p>
                             </div>
                           </div>
-                          {matchedMember && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold shrink-0">
-                              Aktif
+                          {matchedMember ? (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-[10px] font-medium shrink-0">
+                              {matchedMember.name}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-500 text-[10px] font-medium shrink-0">
+                              Belum terisi
                             </span>
                           )}
                         </div>
@@ -841,7 +834,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                     >
                       {OFFICIAL_TEAM_ROLES.map((r) => (
                         <option key={`add-opt-role-${r.id}`} value={r.role}>
-                          {r.id}. {r.role} (Contoh: {r.defaultMemberName})
+                          {r.role}
                         </option>
                       ))}
                     </select>

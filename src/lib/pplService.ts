@@ -326,64 +326,64 @@ export async function removeMemberFromGroup(
   await deleteDoc(memberRef);
 }
 
-// Apply the user's official 8-role team structure into the group
+// Apply the official 8-role team structure into the group
 export async function applyOfficialTeamStructure(
   groupId: string,
   currentUserNim?: string
 ): Promise<void> {
   const officialRoster = [
     {
-      nim: currentUserNim || "220101001",
-      name: "Armawan",
+      nim: currentUserNim || "ROLE-PM",
+      name: "Project Manager",
       roleInGroup: "Project Manager",
       roleDescription:
         "Mengatur jalannya proyek, mengkoordinasikan anggota tim, memastikan pengerjaan sesuai jadwal, serta mengawasi keseluruhan proses pengembangan sistem.",
     },
     {
-      nim: "220101002",
-      name: "Nur Avika",
+      nim: "ROLE-SA",
+      name: "System Analyst",
       roleInGroup: "System Analyst",
       roleDescription:
         "Melakukan analisis kebutuhan sistem, mengidentifikasi kebutuhan pengguna, membuat dokumentasi kebutuhan, dan membantu penyusunan alur sistem.",
     },
     {
-      nim: "220101003",
-      name: "Ria Ramadani",
+      nim: "ROLE-SD",
+      name: "System Designer",
       roleInGroup: "System Designer",
       roleDescription:
         "Merancang desain sistem, membuat rancangan alur proses, serta membantu pembuatan diagram perancangan sistem.",
     },
     {
-      nim: "220101004",
-      name: "Ayudiah Cinta Putry",
+      nim: "ROLE-UIUX",
+      name: "UI/UX Designer",
       roleInGroup: "UI/UX Designer",
       roleDescription:
         "Membuat rancangan tampilan aplikasi, menyusun desain antarmuka, serta memastikan tampilan sistem mudah digunakan oleh pengguna.",
     },
     {
-      nim: "220101005",
-      name: "Nur Indah Sari",
+      nim: "ROLE-DB",
+      name: "Database Designer",
       roleInGroup: "Database Designer",
       roleDescription:
         "Merancang struktur database, membuat ERD, menentukan tabel dan relasi antar data yang digunakan dalam sistem.",
     },
     {
-      nim: "220101006",
-      name: "Muh. Sugandi",
+      nim: "ROLE-FE",
+      name: "Frontend Programmer/Developer",
       roleInGroup: "Frontend Programmer/Developer",
       roleDescription:
         "Merancang struktur antarmuka/frontend aplikasi, mengimplementasikan desain UI/UX ke dalam kode interaktif, dan integrasi API client.",
     },
     {
-      nim: "220101007",
-      name: "Muh. Sugandi",
+      nim: "ROLE-BE",
+      name: "Backend Programmer/Developer",
       roleInGroup: "Backend Programmer/Developer",
       roleDescription:
         "Mengembangkan logika sistem, membuat fitur backend menggunakan Laravel, mengelola database, serta melakukan integrasi antar fitur.",
     },
     {
-      nim: "220101008",
-      name: "Rindi",
+      nim: "ROLE-QA",
+      name: "Tester/QA",
       roleInGroup: "Tester/QA",
       roleDescription:
         "Melakukan pengujian sistem, memastikan fitur berjalan dengan baik, menemukan bug, dan membantu proses evaluasi serta perbaikan sistem.",
