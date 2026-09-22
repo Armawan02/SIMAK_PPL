@@ -219,7 +219,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess, isOpen, onClose
                   }`}
                 >
                   <GraduationCap className="w-3.5 h-3.5" />
-                  Dosen Pembimbing
+                  Dosen Pengampu
                 </button>
               </div>
             </div>

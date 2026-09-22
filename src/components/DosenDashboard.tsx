@@ -142,7 +142,7 @@ export const DosenDashboard: React.FC<DosenDashboardProps> = ({
             <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-xl text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
                 <GraduationCap className="w-4 h-4" />
-                Portal Dosen Pembimbing
+                Portal Dosen Pengampu
               </span>
               <span className="text-xs text-slate-400 font-mono">NIP: {currentUser.nim}</span>
             </div>

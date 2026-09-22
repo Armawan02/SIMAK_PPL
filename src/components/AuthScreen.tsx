@@ -264,8 +264,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-200">Dosen Pembimbing</p>
-                <p className="text-[11px] text-slate-400">Evaluasi &amp; Monitoring</p>
+                <p className="text-xs font-bold text-slate-200">Dosen Pengampu</p>
+                <p className="text-[11px] text-slate-400">Dosen Mata Kuliah</p>
               </div>
             </button>
           </div>
@@ -573,7 +573,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
             </div>
             <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-400 pl-1">
               <li><strong>Mahasiswa</strong>: Masukkan NIM dan buat atau pilih kelompok Anda untuk mulai mengelola Kanban board tugas tim.</li>
-              <li><strong>Dosen Pembimbing</strong>: Masukkan NIP Anda untuk memonitor progres seluruh kelompok bimbingan secara real-time.</li>
+              <li><strong>Dosen Pengampu</strong>: Masukkan NIP Anda untuk memonitor progres seluruh kelompok mahasiswa di kelas PPL Anda secara real-time.</li>
             </ul>
           </div>
         </div>

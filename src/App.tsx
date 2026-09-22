@@ -107,7 +107,7 @@ export default function App() {
         projectTitle: newProjectTitle.trim() || "Proyek PPL",
         description: newGroupDesc.trim() || "Aplikasi proyek perangkat lunak",
         supervisorNip: "198503152010121002",
-        supervisorName: "Dosen Pembimbing PPL",
+        supervisorName: "Dosen Pengampu PPL",
         leaderNim: currentUser.nim,
       });
 
@@ -162,7 +162,7 @@ export default function App() {
                   <span>Kembali ke Ringkasan Semua Kelompok Bimbingan</span>
                 </button>
                 <div className="flex items-center gap-2 text-xs text-purple-300 bg-purple-950/40 border border-purple-500/30 px-3 py-1 rounded-xl">
-                  <span>Mode Evaluasi &amp; Review Dosen Pembimbing</span>
+                  <span>Mode Evaluasi &amp; Review Dosen Pengampu</span>
                 </div>
               </div>
 

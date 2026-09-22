@@ -48,6 +48,8 @@ export async function registerUser(
     groupName?: string;
     projectTitle?: string;
     projectDescription?: string;
+    supervisorName?: string;
+    supervisorNip?: string;
     roleInGroup?: string;
     roleDescription?: string;
   }
@@ -63,8 +65,8 @@ export async function registerUser(
         name: groupDetails.groupName.trim(),
         projectTitle: (groupDetails.projectTitle || "Proyek PPL").trim(),
         description: (groupDetails.projectDescription || "Deskripsi proyek perangkat lunak").trim(),
-        supervisorNip: "198503152010121002",
-        supervisorName: "Dosen Pembimbing PPL",
+        supervisorNip: (groupDetails.supervisorNip || "198503152010121002").trim(),
+        supervisorName: (groupDetails.supervisorName || "Dosen Pengampu PPL").trim(),
         leaderNim: userData.nim,
         createdAt: now,
         updatedAt: now,
@@ -270,6 +272,20 @@ export async function updateTaskDetails(
 export async function deleteTask(groupId: string, taskId: string): Promise<void> {
   const taskRef = doc(db, "groups", groupId, "tasks", taskId);
   await deleteDoc(taskRef);
+}
+
+// Update Dosen Pengampu / Supervisor information for a group
+export async function updateGroupSupervisor(
+  groupId: string,
+  supervisorName: string,
+  supervisorNip: string
+): Promise<void> {
+  const groupRef = doc(db, "groups", groupId);
+  await updateDoc(groupRef, {
+    supervisorName: supervisorName.trim(),
+    supervisorNip: supervisorNip.trim(),
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 // Add a new group
