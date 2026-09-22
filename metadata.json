@@ -1,0 +1,7 @@
+{
+  "name": "SIMAK PPL - Monitoring Progress Kelompok",
+  "description": "Sistem Informasi Monitoring Progress Kelompok PPL dengan Kanban Board real-time Firestore untuk Mahasiswa dan Dosen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

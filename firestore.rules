@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /groups/{groupId} {
+      allow read: if true;
+      allow write: if true;
+
+      match /members/{memberId} {
+        allow read: if true;
+        allow write: if true;
+      }
+
+      match /tasks/{taskId} {
+        allow read: if true;
+        allow write: if true;
+      }
+    }
+
+    match /test/connection {
+      allow read, write: if true;
+    }
+  }
+}

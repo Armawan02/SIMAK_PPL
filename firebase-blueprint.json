@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for mahasiswa or dosen",
+      "type": "object",
+      "properties": {
+        "nim": { "type": "string", "description": "NIM or NIP identifier" },
+        "name": { "type": "string", "description": "Full name" },
+        "role": { "type": "string", "enum": ["mahasiswa", "dosen"], "description": "User role in academic system" },
+        "groupId": { "type": "string", "description": "Optional group ID for student" },
+        "createdAt": { "type": "string", "description": "Account creation ISO timestamp" }
+      },
+      "required": ["nim", "name", "role", "createdAt"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "PPL project group",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Group name (e.g. Kelompok 1)" },
+        "projectTitle": { "type": "string", "description": "Project title" },
+        "description": { "type": "string", "description": "Project description" },
+        "supervisorNip": { "type": "string", "description": "NIP of supervisor lecturer" },
+        "supervisorName": { "type": "string", "description": "Name of supervisor lecturer" },
+        "leaderNim": { "type": "string", "description": "NIM of group leader" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Last update timestamp" }
+      },
+      "required": ["name", "projectTitle", "supervisorName", "createdAt"]
+    },
+    "GroupMember": {
+      "title": "GroupMember",
+      "description": "Member in a group",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string", "description": "Parent group ID" },
+        "nim": { "type": "string", "description": "Student NIM" },
+        "name": { "type": "string", "description": "Student name" },
+        "roleInGroup": { "type": "string", "description": "Role in group (Ketua, Frontend, Backend, dll)" }
+      },
+      "required": ["groupId", "nim", "name", "roleInGroup"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Kanban task item",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string", "description": "Parent group ID" },
+        "title": { "type": "string", "description": "Task title" },
+        "description": { "type": "string", "description": "Task description" },
+        "assignedToNim": { "type": "string", "description": "NIM of student assigned" },
+        "assignedToName": { "type": "string", "description": "Name of student assigned" },
+        "status": { "type": "string", "enum": ["todo", "in_progress", "review", "done"], "description": "Kanban column" },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"], "description": "Task priority level" },
+        "dueDate": { "type": "string", "description": "Due date string" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Update timestamp" }
+      },
+      "required": ["groupId", "title", "status", "priority", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles for lecturers and students"
+    },
+    "/groups/{groupId}": {
+      "schema": "Group",
+      "description": "PPL student groups and project details"
+    },
+    "/groups/{groupId}/members/{memberId}": {
+      "schema": "GroupMember",
+      "description": "Members assigned to each group"
+    },
+    "/groups/{groupId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Kanban tasks and progress tracking for the group"
+    }
+  }
+}
