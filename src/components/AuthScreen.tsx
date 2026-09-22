@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User, UserRole, Group, OFFICIAL_TEAM_ROLES } from "../types";
-import { authenticateUser, registerUser } from "../lib/pplService";
+import { checkAndAuthenticateUser, registerUser } from "../lib/pplService";
 import { 
   FolderKanban, 
   Lock, 
@@ -15,7 +15,8 @@ import {
   Eye,
   EyeOff,
   Database,
-  Info
+  Info,
+  UserPlus
 } from "lucide-react";
 
 interface AuthScreenProps {
@@ -47,6 +48,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [unregisteredNotice, setUnregisteredNotice] = useState<{ id: string; role: UserRole } | null>(null);
 
   // Sync regGroupId if groups change
   useEffect(() => {
@@ -62,27 +64,38 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
     e.preventDefault();
     setError(null);
     setSuccessNotice(null);
+    setUnregisteredNotice(null);
 
     const cleanId = loginIdentifier.trim();
+    const cleanPassword = loginPassword.trim();
+
     if (!cleanId) {
       setError(selectedRole === "dosen" ? "Silakan masukkan NIP Dosen" : "Silakan masukkan NIM Mahasiswa");
       return;
     }
-    if (!loginPassword) {
-      setError("Silakan masukkan password akun Anda");
+    if (!cleanPassword) {
+      setError("Silakan masukkan kata sandi akun Anda");
       return;
     }
 
     setLoading(true);
     try {
-      const user = await authenticateUser(cleanId, loginPassword);
-      if (user) {
-        setSuccessNotice(`Berhasil masuk sebagai ${user.name}`);
-        setTimeout(() => onSuccess(user), 300);
-      } else {
+      const result = await checkAndAuthenticateUser(cleanId, cleanPassword, selectedRole);
+      if (result.success) {
+        setSuccessNotice(`Berhasil masuk sebagai ${result.user.name}`);
+        setTimeout(() => onSuccess(result.user), 300);
+      } else if (result.reason === "not_found") {
+        setUnregisteredNotice({ id: cleanId, role: selectedRole });
         setError(
-          `NIM/NIP atau kata sandi tidak cocok. Belum punya akun? Silakan klik tab 'Daftar Akun Baru' di atas.`
+          `${selectedRole === "dosen" ? "NIP" : "NIM"} "${cleanId}" belum terdaftar di Cloud Firestore. Akun baru harus didaftarkan sekali melalui tab 'Daftar Akun Baru'.`
         );
+      } else if (result.reason === "role_mismatch") {
+        const correctRoleText = result.userRole === "mahasiswa" ? "Mahasiswa" : "Dosen Pengampu";
+        setError(
+          `Akun ${cleanId} terdaftar sebagai ${correctRoleText}. Silakan pilih tombol peran '${correctRoleText}' di atas untuk masuk.`
+        );
+      } else if (result.reason === "wrong_password") {
+        setError("Kata sandi yang dimasukkan salah. Silakan periksa kembali kata sandi akun Anda.");
       }
     } catch (err: any) {
       setError(err?.message || "Terjadi kesalahan saat masuk.");
@@ -273,9 +286,34 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
 
         {/* Error and Success Notices */}
         {error && (
-          <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-            <div className="leading-relaxed">{error}</div>
+          <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex flex-col gap-2.5 text-xs text-rose-300">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+              <div className="leading-relaxed">{error}</div>
+            </div>
+            {unregisteredNotice && (
+              <div className="pt-2.5 border-t border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <span className="text-[11px] text-slate-300">
+                  Daftarkan {unregisteredNotice.role === "dosen" ? "NIP Dosen" : "NIM"} <strong>{unregisteredNotice.id}</strong> sekarang?
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("register");
+                    setSelectedRole(unregisteredNotice.role);
+                    setRegIdentifier(unregisteredNotice.id);
+                    setRegPassword(loginPassword.trim());
+                    setRegConfirmPassword(loginPassword.trim());
+                    setError(null);
+                    setUnregisteredNotice(null);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/30 cursor-pointer shrink-0"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Daftar Akun {unregisteredNotice.role === "dosen" ? "Dosen" : "Mahasiswa"} Ini &rarr;</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

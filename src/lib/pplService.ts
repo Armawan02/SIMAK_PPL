@@ -20,24 +20,55 @@ export async function seedInitialDataIfEmpty(): Promise<void> {
   // Production mode: All data is user-generated in Cloud Firestore
 }
 
-// Authenticate user by NIM/NIP and password strictly from Cloud Firestore
-export async function authenticateUser(nim: string, password: string): Promise<User | null> {
+// Detailed authentication result
+export type AuthResult = 
+  | { success: true; user: User }
+  | { success: false; reason: "not_found" | "wrong_password" | "role_mismatch"; userRole?: UserRole };
+
+// Authenticate user with detailed diagnostics (not found vs wrong password vs role mismatch)
+export async function checkAndAuthenticateUser(
+  nim: string,
+  password: string,
+  expectedRole?: UserRole
+): Promise<AuthResult> {
   try {
     const usersSnap = await getDocs(collection(db, "users"));
     const cleanNim = nim.trim();
+    let matchedDoc: User | null = null;
+    let docId = "";
+
     for (const d of usersSnap.docs) {
       const u = d.data() as User;
-      if (String(u.nim).trim() === cleanNim) {
-        if (!u.password || u.password === password) {
-          return { ...u, id: d.id };
-        }
+      if (String(u.nim).trim().toLowerCase() === cleanNim.toLowerCase()) {
+        matchedDoc = u;
+        docId = d.id;
+        break;
       }
     }
-    return null;
+
+    if (!matchedDoc) {
+      return { success: false, reason: "not_found" };
+    }
+
+    if (expectedRole && matchedDoc.role !== expectedRole) {
+      return { success: false, reason: "role_mismatch", userRole: matchedDoc.role };
+    }
+
+    if (matchedDoc.password && matchedDoc.password !== password) {
+      return { success: false, reason: "wrong_password" };
+    }
+
+    return { success: true, user: { ...matchedDoc, id: docId } };
   } catch (err) {
     console.error("Auth error:", err);
-    return null;
+    return { success: false, reason: "not_found" };
   }
+}
+
+// Authenticate user by NIM/NIP and password strictly from Cloud Firestore
+export async function authenticateUser(nim: string, password: string): Promise<User | null> {
+  const result = await checkAndAuthenticateUser(nim, password);
+  return result.success ? result.user : null;
 }
 
 // Register a new user with optional group creation or joining
