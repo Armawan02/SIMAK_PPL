@@ -6,8 +6,8 @@ import { AuthScreen } from "./components/AuthScreen";
 import { DosenDashboard } from "./components/DosenDashboard";
 import { MahasiswaDashboard } from "./components/MahasiswaDashboard";
 import { auth } from "./lib/firebase";
-import { subscribeToGroups, createGroup, addMemberToGroup, getAuthenticatedUser, logoutUser, updateAuthenticatedUserGroup } from "./lib/pplService";
-import { ArrowLeft, FolderKanban, Plus } from "lucide-react";
+import { subscribeToGroups, subscribeToAuthenticatedUser, logoutUser } from "./lib/pplService";
+import { ArrowLeft, Clock3, FolderKanban, XCircle } from "lucide-react";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -16,25 +16,16 @@ export default function App() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [dosenViewMode, setDosenViewMode] = useState<"overview" | "group_kanban">("overview");
 
-  // Quick group creation modal for student with no group
-  const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newProjectTitle, setNewProjectTitle] = useState("");
-  const [newGroupDesc, setNewGroupDesc] = useState("");
-
   // Restore the Firebase Auth session and subscribe to public group metadata.
   useEffect(() => {
+    let unsubscribeProfile: () => void = () => undefined;
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      unsubscribeProfile();
       if (!firebaseUser) {
         setCurrentUser(null);
         return;
       }
-      try {
-        setCurrentUser(await getAuthenticatedUser());
-      } catch (error) {
-        console.error("Failed to restore authenticated profile:", error);
-        setCurrentUser(null);
-      }
+      unsubscribeProfile = subscribeToAuthenticatedUser(setCurrentUser);
     });
 
     const unsub = subscribeToGroups((groupList) => {
@@ -43,6 +34,7 @@ export default function App() {
 
     return () => {
       unsubAuth();
+      unsubscribeProfile();
       unsub();
     };
   }, []);
@@ -95,41 +87,13 @@ export default function App() {
     setDosenViewMode("group_kanban");
   };
 
-  const handleCreateGroupForStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newGroupName.trim() || !currentUser) return;
-
-    try {
-      const now = new Date().toISOString();
-      const groupId = await createGroup({
-        name: newGroupName.trim(),
-        projectTitle: newProjectTitle.trim() || "Proyek PPL",
-        description: newGroupDesc.trim() || "Aplikasi proyek perangkat lunak",
-        supervisorNip: "198503152010121002",
-        supervisorName: "Dosen Pengampu PPL",
-        leaderNim: currentUser.nim,
-      });
-
-      await addMemberToGroup(groupId, {
-        nim: currentUser.nim,
-        name: currentUser.name,
-        roleInGroup: "Ketua Tim",
-      });
-      await updateAuthenticatedUserGroup(groupId);
-
-      const updatedUser = { ...currentUser, groupId };
-      setCurrentUser(updatedUser);
-      setIsNewGroupModalOpen(false);
-    } catch (err) {
-      console.error("Failed to create group:", err);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white">
       {/* Top Navigation */}
       <HeaderNav
         currentUser={currentUser}
+        groupId={selectedGroup?.id || currentUser?.pendingGroupId}
         onLogout={handleLogout}
         onSwitchUser={() => undefined}
       />
@@ -184,7 +148,23 @@ export default function App() {
           )
         ) : (
           /* ================= MAHASISWA VIEW ================= */
-          selectedGroup ? (
+          currentUser.membershipStatus === "pending" ? (
+            <div className="p-10 text-center bg-slate-900/70 border border-amber-500/20 rounded-3xl max-w-xl mx-auto my-12">
+              <Clock3 className="w-10 h-10 mx-auto mb-4 text-amber-400" />
+              <h3 className="text-base font-bold text-slate-100 mb-2">Menunggu Verifikasi Kelompok</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Permintaan bergabung sudah dikirim. Tunggu Project Manager atau dosen menyetujui keanggotaan Anda.
+              </p>
+            </div>
+          ) : currentUser.membershipStatus === "rejected" ? (
+            <div className="p-10 text-center bg-slate-900/70 border border-rose-500/20 rounded-3xl max-w-xl mx-auto my-12">
+              <XCircle className="w-10 h-10 mx-auto mb-4 text-rose-400" />
+              <h3 className="text-base font-bold text-slate-100 mb-2">Permintaan Bergabung Ditolak</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Silakan hubungi dosen atau Project Manager untuk mengetahui alasannya dan mengajukan permintaan kembali.
+              </p>
+            </div>
+          ) : selectedGroup ? (
             <MahasiswaDashboard
               currentUser={currentUser}
               group={selectedGroup}
@@ -203,96 +183,18 @@ export default function App() {
                 Kelompok Belum Terdaftar
               </h3>
               <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-                Anda belum terhubung ke kelompok PPL mana pun. Anda dapat membuat kelompok baru sekarang atau memilih kelompok yang sudah ada.
+                Anda belum terhubung ke kelompok PPL. Pilih kelompok saat registrasi untuk mengajukan permintaan bergabung.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <button
-                  onClick={() => setIsNewGroupModalOpen(true)}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-600/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Buat Kelompok Baru</span>
-                </button>
+                <span className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300 text-center">
+                  Tunggu dosen membuat kelompok dan menetapkan Project Manager
+                </span>
               </div>
             </div>
           )
         )}
       </main>
-
-      {/* Quick Group Creation Modal for Student */}
-      {isNewGroupModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 w-full max-w-md shadow-2xl relative">
-            <h3 className="text-base font-bold text-slate-100 mb-1 flex items-center gap-2">
-              <FolderKanban className="w-5 h-5 text-blue-400" />
-              Buat Kelompok PPL Baru
-            </h3>
-            <p className="text-xs text-slate-400 mb-5">
-              Daftarkan kelompok Anda untuk mengaktifkan papan Kanban tugas tim.
-            </p>
-
-            <form onSubmit={handleCreateGroupForStudent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Nama Kelompok:
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Kelompok 01"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Judul Proyek Perangkat Lunak:
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: SIMAK PPL - Sistem Monitoring Progres"
-                  value={newProjectTitle}
-                  onChange={(e) => setNewProjectTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Deskripsi Proyek:
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Deskripsi singkat mengenai proyek yang dikembangkan..."
-                  value={newGroupDesc}
-                  onChange={(e) => setNewGroupDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsNewGroupModalOpen(false)}
-                  className="px-3.5 py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-600/20"
-                >
-                  Simpan &amp; Masuk ke Kanban
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Footer with product information */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">

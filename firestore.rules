@@ -45,13 +45,20 @@ service cloud.firestore {
         && !('groupId' in request.resource.data)
         && !('password' in request.resource.data);
       allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
-      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.nim == resource.data.nim
-        && !('password' in request.resource.data)
-        && (resource.data.groupId == request.resource.data.groupId
-          || (request.resource.data.groupId is string
-        && (isDosen() || isGroupLeader(request.resource.data.groupId)))));
+      allow update: if isAdmin()
+        || (signedIn()
+          && (request.auth.uid == userId
+            || isDosen()
+            || (('groupId' in request.resource.data) && isGroupLeader(request.resource.data.groupId))
+            || (('pendingGroupId' in resource.data) && isGroupLeader(resource.data.pendingGroupId)))
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.nim == resource.data.nim
+          && !('password' in request.resource.data)
+          && ((!('groupId' in resource.data) && !('groupId' in request.resource.data))
+            || (('groupId' in resource.data) && ('groupId' in request.resource.data)
+              && resource.data.groupId == request.resource.data.groupId)
+            || (request.resource.data.groupId is string
+              && (isDosen() || isGroupLeader(request.resource.data.groupId)))));
       allow delete: if isAdmin();
     }
 
@@ -95,6 +102,18 @@ service cloud.firestore {
             && request.resource.data.status == 'todo');
         allow delete: if isAdmin() || isProjectManager(groupId)
           || (isStudentInGroup(groupId) && resource.data.status == 'todo');
+
+        match /comments/{commentId} {
+          allow read: if signedIn();
+          allow create: if isAdmin() || isDosen() || isStudentInGroup(groupId);
+          allow update, delete: if isAdmin();
+        }
+      }
+
+      match /activities/{activityId} {
+        allow read: if signedIn();
+        allow create: if isAdmin() || isDosen() || isProjectManager(groupId) || isStudentInGroup(groupId);
+        allow update, delete: if isAdmin();
       }
     }
 

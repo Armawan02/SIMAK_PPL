@@ -38,12 +38,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
   const [regIdentifier, setRegIdentifier] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [regGroupMode, setRegGroupMode] = useState<"join" | "create">("create");
   const [regGroupId, setRegGroupId] = useState(allGroups[0]?.id || "");
   const [regNewGroupName, setRegNewGroupName] = useState("");
   const [regNewProjectTitle, setRegNewProjectTitle] = useState("");
   const [regNewDescription, setRegNewDescription] = useState("");
-  const [regRoleInGroup, setRegRoleInGroup] = useState(OFFICIAL_TEAM_ROLES[0].role);
+  const [regRoleInGroup] = useState("Anggota Tim");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +58,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
       if (!regGroupId) setRegGroupId(allGroups[0].id);
       setRegGroupMode("join");
     } else {
-      setRegGroupMode("create");
+      setRegGroupMode("join");
     }
   }, [allGroups.length]);
 
@@ -134,20 +136,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
 
     // Validation for Mahasiswa
     if (selectedRole === "mahasiswa") {
-      if (regGroupMode === "create") {
-        if (!regNewGroupName.trim()) {
-          setError("Silakan masukkan Nama Kelompok yang ingin dibuat.");
-          return;
-        }
-      } else {
-        if (allGroups.length === 0) {
-          setError("Belum ada kelompok yang terdaftar. Silakan pilih tab '+ Buat Kelompok Baru'.");
-          return;
-        }
-        if (!regGroupId) {
-          setError("Silakan pilih kelompok yang ingin Anda ikuti.");
-          return;
-        }
+      if (allGroups.length === 0) {
+        setError("Belum ada kelompok yang dibuka untuk pendaftaran. Silakan tunggu dosen membuat kelompok.");
+        return;
+      }
+      if (!regGroupId) {
+        setError("Silakan pilih kelompok yang ingin Anda ikuti.");
+        return;
       }
     }
 
@@ -159,14 +154,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
           nim: cleanId,
           role: selectedRole,
           password: regPassword,
-          groupId: selectedRole === "mahasiswa" && regGroupMode === "join" ? regGroupId : undefined,
+          groupId: regGroupId,
         },
         selectedRole === "mahasiswa"
           ? {
-              isNewGroup: regGroupMode === "create",
-              groupName: regNewGroupName,
-              projectTitle: regNewProjectTitle || `Proyek PPL ${regNewGroupName}`,
-              projectDescription: regNewDescription || "Pengembangan aplikasi perangkat lunak",
+              isNewGroup: false,
               roleInGroup: regRoleInGroup,
               roleDescription: OFFICIAL_TEAM_ROLES.find((r) => r.role === regRoleInGroup)?.description || "",
             }
@@ -458,13 +450,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showRegPassword ? "text" : "password"}
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="Buat kata sandi"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <button type="button" onClick={() => setShowRegPassword((value) => !value)} className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-200" title="Lihat password">
+                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
               <div>
@@ -473,150 +468,44 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                 </label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showRegConfirmPassword ? "text" : "password"}
                     value={regConfirmPassword}
                     onChange={(e) => setRegConfirmPassword(e.target.value)}
                     placeholder="Konfirmasi sandi"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <button type="button" onClick={() => setShowRegConfirmPassword((value) => !value)} className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-200" title="Lihat konfirmasi password">
+                    {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Special fields for Mahasiswa: Group Selection or Creation */}
+            {/* Group selection: groups are created and PMs are assigned by dosen. */}
             {selectedRole === "mahasiswa" && (
               <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-200">Keanggotaan Kelompok PPL:</span>
-                  <div className="flex items-center gap-2 text-[11px]">
-                    {allGroups.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setRegGroupMode("join")}
-                        className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                          regGroupMode === "join" ? "bg-blue-600 text-white font-semibold" : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        Pilih Kelompok Ada
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setRegGroupMode("create")}
-                      className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                        regGroupMode === "create" ? "bg-blue-600 text-white font-semibold" : "text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      + Buat Kelompok Baru
-                    </button>
-                  </div>
-                </div>
-
-                {regGroupMode === "join" && allGroups.length > 0 ? (
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Pilih Kelompok Yang Diikuti:</label>
+                <span className="text-xs font-bold text-slate-200">Ajukan Keanggotaan Kelompok PPL</span>
+                {allGroups.length > 0 ? (
+                  <>
+                    <p className="text-[11px] text-slate-400">Kelompok dan Project Manager ditetapkan oleh dosen. Permintaan Anda akan menunggu verifikasi.</p>
                     <select
                       value={regGroupId}
                       onChange={(e) => setRegGroupId(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
                     >
                       {allGroups.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name} - {g.projectTitle}
-                        </option>
+                        <option key={g.id} value={g.id}>{g.name} - {g.projectTitle}</option>
                       ))}
                     </select>
-
-                    <div className="mt-3">
-                      <label className="block text-[11px] text-slate-400 mb-1">
-                        Peran Anda di Tim (Berdasarkan Struktur Resmi PPL):
-                      </label>
-                      <select
-                        value={regRoleInGroup}
-                        onChange={(e) => setRegRoleInGroup(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
-                      >
-                        {OFFICIAL_TEAM_ROLES.map((r) => (
-                          <option key={`join-role-${r.id}`} value={r.role}>
-                            {r.role}
-                          </option>
-                        ))}
-                      </select>
-                      {(() => {
-                        const rDef = OFFICIAL_TEAM_ROLES.find((r) => r.role === regRoleInGroup);
-                        return rDef ? (
-                          <div className="mt-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300">
-                            <span className="font-semibold text-blue-400">Deskripsi Tugas:</span>{" "}
-                            {rDef.description}
-                          </div>
-                        ) : null;
-                      })()}
+                    <div className="rounded-xl bg-blue-950/40 border border-blue-500/20 px-3 py-2 text-[11px] text-blue-200">
+                      Peran Project Manager hanya dapat ditetapkan oleh dosen.
                     </div>
-                  </div>
+                  </>
                 ) : (
-                  <div className="space-y-3">
-                    {allGroups.length === 0 && (
-                      <p className="text-[11px] text-blue-300 bg-blue-950/40 border border-blue-500/20 px-3 py-1.5 rounded-xl">
-                        Belum ada kelompok di database. Daftarkan kelompok pertama Anda di bawah ini:
-                      </p>
-                    )}
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Nama Kelompok Baru:</label>
-                      <input
-                        type="text"
-                        value={regNewGroupName}
-                        onChange={(e) => setRegNewGroupName(e.target.value)}
-                        placeholder="Contoh: Kelompok 01"
-                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Judul Proyek Perangkat Lunak:</label>
-                      <input
-                        type="text"
-                        value={regNewProjectTitle}
-                        onChange={(e) => setRegNewProjectTitle(e.target.value)}
-                        placeholder="Contoh: SIMAK PPL - Sistem Informasi Monitoring"
-                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">Deskripsi Singkat Proyek:</label>
-                      <textarea
-                        rows={2}
-                        value={regNewDescription}
-                        onChange={(e) => setRegNewDescription(e.target.value)}
-                        placeholder="Tuliskan tujuan dan cakupan proyek..."
-                        className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] text-slate-400 mb-1">
-                        Peran Anda di Tim (Berdasarkan Struktur Resmi PPL):
-                      </label>
-                      <select
-                        value={regRoleInGroup}
-                        onChange={(e) => setRegRoleInGroup(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs focus:outline-none focus:border-blue-500"
-                      >
-                        {OFFICIAL_TEAM_ROLES.map((r) => (
-                          <option key={`create-role-${r.id}`} value={r.role}>
-                            {r.role}
-                          </option>
-                        ))}
-                      </select>
-                      {(() => {
-                        const rDef = OFFICIAL_TEAM_ROLES.find((r) => r.role === regRoleInGroup);
-                        return rDef ? (
-                          <div className="mt-2 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] text-slate-300">
-                            <span className="font-semibold text-blue-400">Deskripsi Tugas:</span>{" "}
-                            {rDef.description}
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  </div>
+                  <p className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-500/20 px-3 py-2 rounded-xl">
+                    Belum ada kelompok yang tersedia. Silakan tunggu dosen membuat kelompok dan menetapkan Project Manager.
+                  </p>
                 )}
               </div>
             )}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { User } from "../types";
+import { Activity, User } from "../types";
+import { subscribeToActivities } from "../lib/pplService";
 import { 
   FolderKanban, 
   LogOut, 
@@ -9,22 +10,27 @@ import {
   CalendarDays,
   Sun,
   Moon,
-  ShieldCheck
+  ShieldCheck,
+  Bell
 } from "lucide-react";
 
 interface HeaderNavProps {
   currentUser: User | null;
   onLogout: () => void;
   onSwitchUser: () => void;
+  groupId?: string;
 }
 
 export const HeaderNav: React.FC<HeaderNavProps> = ({
   currentUser,
   onLogout,
   onSwitchUser,
+  groupId,
 }) => {
   const [isLightTheme, setIsLightTheme] = useState(() => localStorage.getItem("simak_theme") === "light");
   const [now, setNow] = useState(() => new Date());
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [showActivities, setShowActivities] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = isLightTheme ? "light" : "dark";
@@ -35,6 +41,14 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!groupId || !currentUser) {
+      setActivities([]);
+      return;
+    }
+    return subscribeToActivities(groupId, setActivities);
+  }, [groupId, currentUser]);
 
   const dateLabel = new Intl.DateTimeFormat("id-ID", {
     weekday: "short",
@@ -86,6 +100,35 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           >
             {isLightTheme ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </button>
+
+          {currentUser && groupId && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowActivities((value) => !value)}
+                title="Aktivitas kelompok"
+                className="relative p-2 rounded-xl border border-slate-700/80 text-slate-300 hover:text-blue-300 hover:border-blue-400/50 transition-colors cursor-pointer"
+              >
+                <span className="sr-only">Aktivitas kelompok</span>
+                <Bell className="w-4 h-4" />
+                {activities.length > 0 && <span className="absolute -right-1 -top-1 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">{activities.length > 9 ? "9+" : activities.length}</span>}
+              </button>
+              {showActivities && (
+                <div className="absolute right-0 top-11 z-50 w-72 rounded-2xl border border-slate-700 bg-slate-900 p-3 shadow-2xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-bold text-slate-100">Aktivitas Terbaru</h3>
+                    <span className="text-[10px] text-slate-500">{activities.length} item</span>
+                  </div>
+                  {activities.length === 0 ? <p className="text-[11px] text-slate-400 py-3">Belum ada aktivitas.</p> : activities.map((activity) => (
+                    <div key={activity.id} className="border-t border-slate-800 py-2">
+                      <p className="text-[11px] text-slate-300">{activity.message}</p>
+                      <p className="text-[10px] text-slate-500 mt-1">{new Date(activity.createdAt).toLocaleString("id-ID")}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {currentUser ? (
             <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">

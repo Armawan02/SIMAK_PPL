@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Group, Task, TaskStatus, GroupMember, MembershipRequest, User, OFFICIAL_TEAM_ROLES } from "../types";
+import { Group, Task, TaskComment, TaskStatus, GroupMember, MembershipRequest, User, OFFICIAL_TEAM_ROLES } from "../types";
 import { 
   subscribeToTasks, 
   subscribeToMembers, 
@@ -14,6 +14,8 @@ import {
   subscribeToMembershipRequests,
   approveMembershipRequest,
   rejectMembershipRequest
+  ,subscribeToTaskComments,
+  addTaskComment
 } from "../lib/pplService";
 import { TaskModal } from "./TaskModal";
 import { 
@@ -40,6 +42,10 @@ import {
   Award,
   Layers,
   Info
+  ,Link as LinkIcon,
+  ExternalLink,
+  MessageCircle,
+  Send
 } from "lucide-react";
 
 interface MahasiswaDashboardProps {
@@ -57,6 +63,9 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
 }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
+  const [openCommentsTaskId, setOpenCommentsTaskId] = useState<string | null>(null);
+  const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
+  const [commentDraft, setCommentDraft] = useState("");
   const [membershipRequests, setMembershipRequests] = useState<MembershipRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -114,6 +123,14 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
       unsubRequests();
     };
   }, [group.id, currentUser.role, currentUser.nim, group.leaderNim]);
+
+  useEffect(() => {
+    if (!openCommentsTaskId) {
+      setTaskComments([]);
+      return;
+    }
+    return subscribeToTaskComments(group.id, openCommentsTaskId, setTaskComments);
+  }, [group.id, openCommentsTaskId]);
 
   // Calculate Progress
   const totalTasks = tasks.length;
@@ -266,6 +283,13 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
     } catch (error) {
       console.error("Failed to process membership request:", error);
     }
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!openCommentsTaskId || !commentDraft.trim()) return;
+    await addTaskComment(group.id, openCommentsTaskId, currentUser, commentDraft);
+    setCommentDraft("");
   };
 
   const handleSaveDosen = async (e: React.FormEvent) => {
@@ -585,6 +609,17 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                         </p>
                       )}
 
+                      {task.resourceLinks && task.resourceLinks.length > 0 && (
+                        <div className="mb-3 space-y-1">
+                          <p className="flex items-center gap-1 text-[10px] font-semibold text-slate-400"><LinkIcon className="w-3 h-3" /> Link hasil kerja</p>
+                          {task.resourceLinks.map((link) => (
+                            <a key={link} href={link} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 truncate" title={link}>
+                              <ExternalLink className="w-3 h-3 shrink-0" /> <span className="truncate">{link}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Assignee & Due Date */}
                       <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[11px] text-slate-400">
                         <div className="flex items-center gap-1.5 truncate mr-1">
@@ -651,6 +686,24 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                             </button>
                           )}
                           </div>
+                        </div>
+                      )}
+
+                      <button type="button" onClick={() => setOpenCommentsTaskId(openCommentsTaskId === task.id ? null : task.id)} className="mt-3 pt-2 border-t border-slate-900/80 flex items-center gap-1 text-[10px] text-slate-400 hover:text-blue-300">
+                        <MessageCircle className="w-3 h-3" /> {openCommentsTaskId === task.id ? "Tutup komentar" : "Komentar / catatan pemeriksaan"}
+                      </button>
+                      {openCommentsTaskId === task.id && (
+                        <div className="mt-2 space-y-2">
+                          {taskComments.map((comment) => (
+                            <div key={comment.id} className="rounded-lg bg-slate-900 border border-slate-800 p-2">
+                              <p className="text-[10px] text-slate-300"><strong>{comment.authorName}</strong>: {comment.message}</p>
+                              <p className="text-[9px] text-slate-500 mt-1">{new Date(comment.createdAt).toLocaleString("id-ID")}</p>
+                            </div>
+                          ))}
+                          <form onSubmit={handleCommentSubmit} className="flex gap-1">
+                            <input value={commentDraft} onChange={(e) => setCommentDraft(e.target.value)} placeholder="Tulis komentar..." className="min-w-0 flex-1 rounded-lg bg-slate-900 border border-slate-800 px-2 py-1.5 text-[10px] text-slate-200" />
+                            <button type="submit" title="Kirim komentar" className="rounded-lg bg-blue-600 px-2 text-white"><Send className="w-3 h-3" /></button>
+                          </form>
                         </div>
                       )}
                     </div>

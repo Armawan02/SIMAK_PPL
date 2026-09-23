@@ -6,6 +6,8 @@ export interface User {
   name: string;
   role: UserRole;
   groupId?: string;
+  pendingGroupId?: string;
+  membershipStatus?: "pending" | "approved" | "rejected";
   createdAt: string;
 }
 
@@ -27,6 +29,13 @@ export interface MembershipRequest {
   roleInGroup: string;
   roleDescription?: string;
   status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
+export interface Activity {
+  id: string;
+  groupId: string;
+  message: string;
   createdAt: string;
 }
 
@@ -103,6 +112,16 @@ export interface Task {
   dueDate: string;
   createdAt: string;
   updatedAt: string;
+  resourceLinks?: string[];
+}
+
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  authorName: string;
+  authorNim: string;
+  message: string;
+  createdAt: string;
 }
 
 export interface Group {

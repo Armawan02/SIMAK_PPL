@@ -7,6 +7,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   onSnapshot,
   query,
   orderBy,
@@ -19,7 +20,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, db, firebaseDatabaseId, firebaseProjectId } from "./firebase";
-import { User, Group, GroupMember, MembershipRequest, Task, TaskStatus, UserRole } from "../types";
+import { Activity, User, Group, GroupMember, MembershipRequest, Task, TaskComment, TaskStatus, UserRole } from "../types";
 
 // Empty initializer - no dummy data for production
 export async function seedInitialDataIfEmpty(): Promise<void> {
@@ -45,8 +46,58 @@ export async function getAuthenticatedUser(): Promise<User | null> {
     : null;
 }
 
+export function subscribeToAuthenticatedUser(callback: (user: User | null) => void): Unsubscribe {
+  if (!auth.currentUser) {
+    callback(null);
+    return () => undefined;
+  }
+  return onSnapshot(doc(db, "users", auth.currentUser.uid), (snapshot) => {
+    callback(snapshot.exists() ? { ...(snapshot.data() as Omit<User, "id">), id: snapshot.id } : null);
+  }, () => callback(null));
+}
+
 export function logoutUser(): Promise<void> {
   return signOut(auth);
+}
+
+export async function addActivity(groupId: string, message: string): Promise<void> {
+  try {
+    await addDoc(collection(db, "groups", groupId, "activities"), {
+      groupId,
+      message,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.warn("Activity log unavailable:", error);
+  }
+}
+
+export function subscribeToActivities(groupId: string, callback: (activities: Activity[]) => void): Unsubscribe {
+  return onSnapshot(collection(db, "groups", groupId, "activities"), (snapshot) => {
+    const activities = snapshot.docs
+      .map((item) => ({ id: item.id, ...(item.data() as Omit<Activity, "id">) }))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 12);
+    callback(activities);
+  }, () => callback([]));
+}
+
+export function subscribeToTaskComments(groupId: string, taskId: string, callback: (comments: TaskComment[]) => void): Unsubscribe {
+  return onSnapshot(collection(db, "groups", groupId, "tasks", taskId, "comments"), (snapshot) => {
+    callback(snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<TaskComment, "id">) }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+  }, () => callback([]));
+}
+
+export async function addTaskComment(groupId: string, taskId: string, author: User, message: string): Promise<void> {
+  await addDoc(collection(db, "groups", groupId, "tasks", taskId, "comments"), {
+    taskId,
+    authorName: author.name,
+    authorNim: author.nim,
+    message: message.trim(),
+    createdAt: new Date().toISOString(),
+  });
+  await addActivity(groupId, `${author.name} menambahkan komentar pada tugas.`);
 }
 
 export function updateAuthenticatedUserGroup(groupId: string): Promise<void> {
@@ -116,7 +167,11 @@ export async function registerUser(
     name: userData.name.trim(),
     role: userData.role,
     createdAt: new Date().toISOString(),
-    ...(isJoiningExistingGroup || !assignedGroupId ? {} : { groupId: assignedGroupId }),
+    ...(isJoiningExistingGroup
+      ? { pendingGroupId: assignedGroupId, membershipStatus: "pending" as const }
+      : assignedGroupId
+      ? { groupId: assignedGroupId, membershipStatus: "approved" as const }
+      : {}),
   };
 
   await setDoc(doc(db, "users", userId), newUser);
@@ -165,6 +220,7 @@ export async function registerUser(
         status: "pending",
         createdAt: new Date().toISOString(),
       });
+      await addActivity(assignedGroupId, `${newUser.name} mengajukan permintaan bergabung.`);
     } catch (e) {
       console.warn("Could not add member to group doc:", e);
     }
@@ -197,12 +253,19 @@ export async function approveMembershipRequest(request: MembershipRequest): Prom
     id: memberId,
     approvalRequestId: request.id,
   });
-  await updateDoc(doc(db, "users", request.userId), { groupId: request.groupId });
+  await updateDoc(doc(db, "users", request.userId), {
+    groupId: request.groupId,
+    membershipStatus: "approved",
+    pendingGroupId: deleteField(),
+  });
   await updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "approved" });
+  await addActivity(request.groupId, `${request.name} diterima sebagai anggota kelompok.`);
 }
 
 export function rejectMembershipRequest(request: MembershipRequest): Promise<void> {
-  return updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "rejected" });
+  return updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "rejected" })
+    .then(() => updateDoc(doc(db, "users", request.userId), { membershipStatus: "rejected" }))
+    .then(() => addActivity(request.groupId, `Permintaan ${request.name} ditolak.`));
 }
 
 // Live database diagnostic stats
@@ -327,6 +390,7 @@ export async function addTask(groupId: string, task: Omit<Task, "id" | "createdA
     updatedAt: now,
   };
   const docRef = await addDoc(collection(db, "groups", groupId, "tasks"), taskData);
+  await addActivity(groupId, `Tugas "${task.title}" ditambahkan.`);
   return docRef.id;
 }
 
@@ -337,6 +401,7 @@ export async function updateTaskStatus(groupId: string, taskId: string, newStatu
     status: newStatus,
     updatedAt: new Date().toISOString(),
   });
+  await addActivity(groupId, `Status tugas diubah menjadi ${newStatus}.`);
 }
 
 // Update task details
@@ -350,12 +415,14 @@ export async function updateTaskDetails(
     ...updates,
     updatedAt: new Date().toISOString(),
   });
+  await addActivity(groupId, "Detail tugas diperbarui.");
 }
 
 // Delete a task
 export async function deleteTask(groupId: string, taskId: string): Promise<void> {
   const taskRef = doc(db, "groups", groupId, "tasks", taskId);
   await deleteDoc(taskRef);
+  await addActivity(groupId, "Satu tugas dihapus.");
 }
 
 // Update Dosen Pengampu / Supervisor information for a group

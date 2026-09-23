@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Task, TaskPriority, TaskStatus, GroupMember } from "../types";
-import { X, Calendar, Flag, User as UserIcon, Check } from "lucide-react";
+import { X, Calendar, Flag, User as UserIcon, Check, Link as LinkIcon } from "lucide-react";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -28,6 +28,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [assignedToNim, setAssignedToNim] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [resourceLinks, setResourceLinks] = useState("");
 
   useEffect(() => {
     if (initialTask) {
@@ -37,6 +38,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setPriority(initialTask.priority || "medium");
       setAssignedToNim(initialTask.assignedToNim || (members[0]?.nim ?? ""));
       setDueDate(initialTask.dueDate || new Date().toISOString().split("T")[0]);
+      setResourceLinks((initialTask.resourceLinks || []).join("\n"));
     } else {
       setTitle("");
       setDescription("");
@@ -44,6 +46,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setPriority("medium");
       setAssignedToNim(members[0]?.nim ?? "");
       setDueDate(new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]);
+      setResourceLinks("");
     }
   }, [initialTask, members, isOpen]);
 
@@ -66,6 +69,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         assignedToNim: assignedToNim || undefined,
         assignedToName: assignedMember ? assignedMember.name : undefined,
         dueDate: dueDate || new Date().toISOString().split("T")[0],
+        resourceLinks: resourceLinks.split("\n").map((link) => link.trim()).filter((link) => /^https?:\/\//i.test(link)),
       });
       onClose();
     } catch (err) {
@@ -103,6 +107,20 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-300 mb-1">
+              <LinkIcon className="w-3.5 h-3.5 text-slate-400" /> Link hasil kerja / referensi
+            </label>
+            <textarea
+              rows={3}
+              value={resourceLinks}
+              onChange={(e) => setResourceLinks(e.target.value)}
+              placeholder="Satu link per baris: Google Drive, Docs, Figma, draw.io, GitHub..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+            />
+            <p className="mt-1 text-[10px] text-slate-500">Gunakan link berbagi yang dapat diakses dosen.</p>
           </div>
 
           <div>

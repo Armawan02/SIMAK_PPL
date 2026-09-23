@@ -114,7 +114,7 @@ export const DosenDashboard: React.FC<DosenDashboardProps> = ({
               {
                 nim: newLeaderNim.trim(),
                 name: newLeaderName.trim(),
-                roleInGroup: "Ketua Tim",
+                roleInGroup: "Project Manager",
               },
             ]
           : []
