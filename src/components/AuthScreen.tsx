@@ -223,6 +223,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
             type="button"
             onClick={() => {
               setMode("register");
+              setSelectedRole("mahasiswa");
               setError(null);
             }}
             className={`py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
@@ -264,28 +265,30 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
               </div>
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedRole("dosen");
-                setError(null);
-              }}
-              className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
-                selectedRole === "dosen"
-                  ? "bg-purple-600/15 border-purple-500 text-white shadow-md shadow-purple-500/10"
-                  : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                selectedRole === "dosen" ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-400"
-              }`}>
-                <GraduationCap className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-200">Dosen Pengampu</p>
-                <p className="text-[11px] text-slate-400">Dosen Mata Kuliah</p>
-              </div>
-            </button>
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRole("dosen");
+                  setError(null);
+                }}
+                className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                  selectedRole === "dosen"
+                    ? "bg-purple-600/15 border-purple-500 text-white shadow-md shadow-purple-500/10"
+                    : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  selectedRole === "dosen" ? "bg-purple-600 text-white" : "bg-slate-800 text-slate-400"
+                }`}>
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-200">Dosen Pengampu</p>
+                  <p className="text-[11px] text-slate-400">Login akun yang dibuat admin</p>
+                </div>
+              </button>
+            )}
           </div>
         </div>
 
@@ -301,22 +304,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                 <span className="text-[11px] text-slate-300">
                   Daftarkan {unregisteredNotice.role === "dosen" ? "NIP Dosen" : "NIM"} <strong>{unregisteredNotice.id}</strong> sekarang?
                 </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("register");
-                    setSelectedRole(unregisteredNotice.role);
-                    setRegIdentifier(unregisteredNotice.id);
-                    setRegPassword(loginPassword.trim());
-                    setRegConfirmPassword(loginPassword.trim());
-                    setError(null);
-                    setUnregisteredNotice(null);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/30 cursor-pointer shrink-0"
-                >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>Daftar Akun {unregisteredNotice.role === "dosen" ? "Dosen" : "Mahasiswa"} Ini &rarr;</span>
-                </button>
+                {unregisteredNotice.role === "mahasiswa" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("register");
+                      setSelectedRole("mahasiswa");
+                      setRegIdentifier(unregisteredNotice.id);
+                      setRegPassword(loginPassword.trim());
+                      setRegConfirmPassword(loginPassword.trim());
+                      setError(null);
+                      setUnregisteredNotice(null);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-purple-600/30 cursor-pointer shrink-0"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Daftar Akun Mahasiswa Ini &rarr;</span>
+                  </button>
+                ) : (
+                  <span className="text-[11px] text-amber-300 sm:max-w-52">
+                    Akun dosen dibuat oleh administrator.
+                  </span>
+                )}
               </div>
             )}
           </div>
