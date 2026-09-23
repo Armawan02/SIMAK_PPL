@@ -32,7 +32,8 @@ export type AuthResult =
   | { success: false; reason: "not_found" | "wrong_password" | "role_mismatch"; userRole?: UserRole };
 
 function authEmail(identifier: string): string {
-  return `${identifier.trim().toLowerCase()}@simak.local`;
+  const normalized = identifier.trim().toLowerCase();
+  return normalized.includes("@") ? normalized : `${normalized}@simak.local`;
 }
 
 export async function getAuthenticatedUser(): Promise<User | null> {
@@ -186,11 +187,15 @@ export function subscribeToMembershipRequests(
 }
 
 export async function approveMembershipRequest(request: MembershipRequest): Promise<void> {
-  await addMemberToGroup(request.groupId, {
+  const memberId = `member-${request.nim}`;
+  await setDoc(doc(db, "groups", request.groupId, "members", memberId), {
+    groupId: request.groupId,
     nim: request.nim,
     name: request.name,
     roleInGroup: request.roleInGroup,
     roleDescription: request.roleDescription,
+    id: memberId,
+    approvalRequestId: request.id,
   });
   await updateDoc(doc(db, "users", request.userId), { groupId: request.groupId });
   await updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "approved" });

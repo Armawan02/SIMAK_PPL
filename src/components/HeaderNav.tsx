@@ -8,7 +8,8 @@ import {
   LogIn,
   CalendarDays,
   Sun,
-  Moon
+  Moon,
+  ShieldCheck
 } from "lucide-react";
 
 interface HeaderNavProps {
@@ -94,16 +95,18 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 </p>
                 <div className="flex items-center justify-end gap-1.5 mt-0.5">
                   <span className="text-[10px] text-slate-400 font-mono">
-                    {currentUser.role === "dosen" ? `NIP: ${currentUser.nim}` : `NIM: ${currentUser.nim}`}
+                    {currentUser.role === "dosen" ? `NIP: ${currentUser.nim}` : currentUser.role === "admin" ? "Administrator" : `NIM: ${currentUser.nim}`}
                   </span>
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded font-semibold uppercase tracking-wider ${
                       currentUser.role === "dosen"
                         ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                        : currentUser.role === "admin"
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                         : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
                     }`}
                   >
-                    {currentUser.role === "dosen" ? "Dosen" : "Mahasiswa"}
+                    {currentUser.role === "dosen" ? "Dosen" : currentUser.role === "admin" ? "Admin" : "Mahasiswa"}
                   </span>
                 </div>
               </div>
@@ -113,11 +116,15 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm border shadow-sm ${
                   currentUser.role === "dosen"
                     ? "bg-purple-900/40 text-purple-200 border-purple-500/30"
+                    : currentUser.role === "admin"
+                    ? "bg-amber-900/40 text-amber-200 border-amber-500/30"
                     : "bg-blue-900/40 text-blue-200 border-blue-500/30"
                 }`}
               >
                 {currentUser.role === "dosen" ? (
                   <GraduationCap className="w-5 h-5 text-purple-300" />
+                ) : currentUser.role === "admin" ? (
+                  <ShieldCheck className="w-5 h-5 text-amber-300" />
                 ) : (
                   <UserCheck className="w-5 h-5 text-blue-300" />
                 )}

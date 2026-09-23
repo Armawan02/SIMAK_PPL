@@ -142,8 +142,8 @@ export default function App() {
             onSuccess={handleLoginSuccess}
             allGroups={groups}
           />
-        ) : currentUser.role === "dosen" ? (
-          /* ================= DOSEN VIEW ================= */
+        ) : currentUser.role === "dosen" || currentUser.role === "admin" ? (
+          /* ================= DOSEN / ADMIN VIEW ================= */
           dosenViewMode === "overview" ? (
             <DosenDashboard
               currentUser={currentUser}

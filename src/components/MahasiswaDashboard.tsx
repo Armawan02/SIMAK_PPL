@@ -101,8 +101,8 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
       setMembers(memberList);
     });
 
-    const isCurrentUserProjectManager = currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim;
-    const unsubRequests = isCurrentUserProjectManager
+    const canReviewMembers = currentUser.role === "dosen" || (currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim);
+    const unsubRequests = canReviewMembers
       ? subscribeToMembershipRequests(group.id, (requestList) => {
           setMembershipRequests(requestList.filter((request) => request.status === "pending"));
         })
@@ -120,6 +120,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const doneTasks = tasks.filter((t) => t.status === "done").length;
   const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
   const isProjectManager = currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim;
+  const canReviewMembers = currentUser.role === "dosen" || isProjectManager;
   const canManageMembers = isProjectManager;
   const canManageTask = (task?: Task) => {
     if (currentUser.role === "dosen") return false;
@@ -206,7 +207,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
 
   const handleAddMemberSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isProjectManager) return;
+    if (!canReviewMembers) return;
     if (!newMemberNim.trim() || !newMemberName.trim()) return;
     try {
       const roleDef = OFFICIAL_TEAM_ROLES.find((r) => r.role === newMemberRole);
@@ -239,7 +240,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   };
 
   const handleDeleteMember = async (memberId: string, memberName: string) => {
-    if (!isProjectManager) return;
+    if (!canReviewMembers) return;
     if (window.confirm(`Hapus anggota ${memberName} dari kelompok?`)) {
       try {
         await removeMemberFromGroup(group.id, memberId);
@@ -252,7 +253,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   };
 
   const handleMembershipDecision = async (request: MembershipRequest, approved: boolean) => {
-    if (!isProjectManager) return;
+    if (!canReviewMembers) return;
     try {
       if (approved) {
         await approveMembershipRequest(request);
@@ -819,7 +820,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
             {/* Tab 2: Roster & Add Form */}
             {memberModalTab === "roster" && (
               <div className="flex-1 overflow-y-auto pt-4 pr-1 space-y-4">
-                {isProjectManager && membershipRequests.length > 0 && (
+                {canReviewMembers && membershipRequests.length > 0 && (
                   <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
                     <h4 className="text-xs font-bold text-amber-300">
                       Permintaan Bergabung ({membershipRequests.length})

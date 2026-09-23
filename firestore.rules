@@ -13,6 +13,10 @@ service cloud.firestore {
       return signedIn() && profile().role == 'dosen';
     }
 
+    function isAdmin() {
+      return signedIn() && profile().role == 'admin';
+    }
+
     function isStudentInGroup(groupId) {
       return signedIn()
         && profile().role == 'mahasiswa'
@@ -29,6 +33,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/groups/$(groupId)).data.leaderNim == profile().nim;
     }
 
+    function canReviewMembers(groupId) {
+      return isDosen() || isProjectManager(groupId);
+    }
+
     match /users/{userId} {
       allow create: if signedIn() && request.auth.uid == userId
         && request.resource.data.role == 'mahasiswa'
@@ -36,14 +44,15 @@ service cloud.firestore {
         && request.resource.data.name is string
         && !('groupId' in request.resource.data)
         && !('password' in request.resource.data);
-      allow read: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && request.auth.uid == userId
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId
         && request.resource.data.role == resource.data.role
         && request.resource.data.nim == resource.data.nim
         && !('password' in request.resource.data)
         && (resource.data.groupId == request.resource.data.groupId
-          || (request.resource.data.groupId is string && isGroupLeader(request.resource.data.groupId)));
-      allow delete: if false;
+          || (request.resource.data.groupId is string
+        && (isDosen() || isGroupLeader(request.resource.data.groupId)))));
+      allow delete: if isAdmin();
     }
 
     // Group names and project titles are needed on the registration screen.
@@ -51,35 +60,40 @@ service cloud.firestore {
     match /groups/{groupId} {
       allow read: if true;
       allow create: if signedIn();
-      allow update, delete: if isDosen() || isStudentInGroup(groupId);
+      allow update, delete: if isAdmin() || isDosen() || isStudentInGroup(groupId);
 
       match /members/{memberId} {
         allow read: if signedIn();
-        allow create, update, delete: if isDosen() || isGroupLeader(groupId);
+        allow create: if isAdmin() || isGroupLeader(groupId)
+          || (isDosen()
+            && request.resource.data.approvalRequestId is string
+            && exists(/databases/$(database)/documents/groups/$(groupId)/joinRequests/$(request.resource.data.approvalRequestId))
+            && get(/databases/$(database)/documents/groups/$(groupId)/joinRequests/$(request.resource.data.approvalRequestId)).data.status == 'pending');
+        allow update, delete: if isAdmin() || isGroupLeader(groupId);
       }
 
       match /joinRequests/{requestId} {
-        allow read: if isProjectManager(groupId)
+        allow read: if isAdmin() || canReviewMembers(groupId)
           || (signedIn() && request.auth.uid == requestId);
         allow create: if signedIn()
           && request.auth.uid == requestId
           && request.resource.data.groupId == groupId
           && request.resource.data.status == 'pending'
           && request.resource.data.nim == profile().nim;
-        allow update: if isProjectManager(groupId);
-        allow delete: if isProjectManager(groupId)
+        allow update: if isAdmin() || canReviewMembers(groupId);
+        allow delete: if isAdmin() || canReviewMembers(groupId)
           || (signedIn() && request.auth.uid == requestId);
       }
 
       match /tasks/{taskId} {
         allow read: if signedIn();
-        allow create: if isProjectManager(groupId)
+        allow create: if isAdmin() || isProjectManager(groupId)
           || (isStudentInGroup(groupId) && request.resource.data.status == 'todo');
-        allow update: if isProjectManager(groupId)
+        allow update: if isAdmin() || isProjectManager(groupId)
           || (isStudentInGroup(groupId)
             && resource.data.status == 'todo'
             && request.resource.data.status == 'todo');
-        allow delete: if isProjectManager(groupId)
+        allow delete: if isAdmin() || isProjectManager(groupId)
           || (isStudentInGroup(groupId) && resource.data.status == 'todo');
       }
     }

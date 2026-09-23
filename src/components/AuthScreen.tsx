@@ -70,7 +70,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
     const cleanPassword = loginPassword.trim();
 
     if (!cleanId) {
-      setError(selectedRole === "dosen" ? "Silakan masukkan NIP Dosen" : "Silakan masukkan NIM Mahasiswa");
+      setError(selectedRole === "dosen" ? "Silakan masukkan NIP Dosen" : selectedRole === "admin" ? "Silakan masukkan email administrator" : "Silakan masukkan NIM Mahasiswa");
       return;
     }
     if (!cleanPassword) {
@@ -87,10 +87,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
       } else if (result.reason === "not_found") {
         setUnregisteredNotice({ id: cleanId, role: selectedRole });
         setError(
-          `${selectedRole === "dosen" ? "NIP" : "NIM"} "${cleanId}" belum terhubung ke akun login. Data lama di Firestore tidak otomatis menjadi akun Firebase Authentication. Silakan daftarkan ulang akun ini atau minta administrator melakukan migrasi.`
+          `${selectedRole === "dosen" ? "NIP" : selectedRole === "admin" ? "Email" : "NIM"} "${cleanId}" belum terhubung ke akun login. Silakan periksa akun Firebase Authentication.`
         );
       } else if (result.reason === "role_mismatch") {
-        const correctRoleText = result.userRole === "mahasiswa" ? "Mahasiswa" : "Dosen Pengampu";
+        const correctRoleText = result.userRole === "mahasiswa" ? "Mahasiswa" : result.userRole === "admin" ? "Administrator" : "Dosen Pengampu";
         setError(
           `Akun ${cleanId} terdaftar sebagai ${correctRoleText}. Silakan pilih tombol peran '${correctRoleText}' di atas untuk masuk.`
         );
@@ -117,8 +117,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
       return;
     }
 
-    if (selectedRole === "dosen") {
-      setError("Pendaftaran akun dosen dinonaktifkan. Gunakan akun dosen yang dibuat oleh administrator.");
+    if (selectedRole !== "mahasiswa") {
+      setError("Pendaftaran akun ini dinonaktifkan. Akun dosen dan administrator dibuat secara manual oleh administrator sistem.");
       return;
     }
 
@@ -241,7 +241,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
           <label className="block text-xs font-semibold text-slate-300 mb-2">
             Pilih Peran Anda:
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={`grid gap-3 ${mode === "login" ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1"}`}>
             <button
               type="button"
               onClick={() => {
@@ -289,6 +289,30 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                 </div>
               </button>
             )}
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRole("admin");
+                  setError(null);
+                }}
+                className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                  selectedRole === "admin"
+                    ? "bg-amber-600/15 border-amber-500 text-white shadow-md shadow-amber-500/10"
+                    : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                  selectedRole === "admin" ? "bg-amber-600 text-white" : "bg-slate-800 text-slate-400"
+                }`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-200">Administrator</p>
+                  <p className="text-[11px] text-slate-400">Akses pengelolaan sistem</p>
+                </div>
+              </button>
+            )}
           </div>
         </div>
 
@@ -302,7 +326,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
             {unregisteredNotice && (
               <div className="pt-2.5 border-t border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <span className="text-[11px] text-slate-300">
-                  Daftarkan {unregisteredNotice.role === "dosen" ? "NIP Dosen" : "NIM"} <strong>{unregisteredNotice.id}</strong> sekarang?
+                  {unregisteredNotice.role === "admin" ? "Akun administrator dibuat secara manual oleh administrator sistem." : `Daftarkan ${unregisteredNotice.role === "dosen" ? "NIP Dosen" : "NIM"} ${unregisteredNotice.id} melalui administrator.`}
                 </span>
                 {unregisteredNotice.role === "mahasiswa" ? (
                   <button
@@ -323,7 +347,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                   </button>
                 ) : (
                   <span className="text-[11px] text-amber-300 sm:max-w-52">
-                    Akun dosen dibuat oleh administrator.
+                    Akun ini dibuat oleh administrator sistem.
                   </span>
                 )}
               </div>
@@ -343,14 +367,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {selectedRole === "dosen" ? "NIP Dosen" : "NIM Mahasiswa"}
+                {selectedRole === "dosen" ? "NIP Dosen" : selectedRole === "admin" ? "Email Administrator" : "NIM Mahasiswa"}
               </label>
               <div className="relative">
                 <input
                   type="text"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
-                  placeholder={selectedRole === "dosen" ? "Contoh: 198503152010121002" : "Contoh: 2101001"}
+                  placeholder={selectedRole === "dosen" ? "Contoh: 198503152010121002" : selectedRole === "admin" ? "armawanome47@gmail.com" : "Contoh: 2101001"}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs sm:text-sm focus:outline-none focus:border-blue-500 transition-colors"
                 />
                 <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
