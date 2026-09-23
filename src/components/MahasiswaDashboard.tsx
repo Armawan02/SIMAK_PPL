@@ -318,18 +318,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setEditDosenName(group.supervisorName || "Dosen Pengampu PPL");
-                  setEditDosenNip(group.supervisorNip || "198503152010121002");
-                  setIsEditDosenModalOpen(true);
-                }}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-purple-950/60 border border-slate-800 hover:border-purple-500/40 text-slate-400 hover:text-purple-300 text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                title="Atur Nama & NIP Dosen Pengampu Mata Kuliah"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Ubah Dosen</span>
-              </button>
+          
             </div>
           </div>
 
