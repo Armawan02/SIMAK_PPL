@@ -12,7 +12,13 @@ import {
   orderBy,
   Unsubscribe
 } from "firebase/firestore";
-import { db } from "./firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import { auth, db, firebaseDatabaseId, firebaseProjectId } from "./firebase";
 import { User, Group, GroupMember, Task, TaskStatus, UserRole } from "../types";
 
 // Empty initializer - no dummy data for production
@@ -25,6 +31,23 @@ export type AuthResult =
   | { success: true; user: User }
   | { success: false; reason: "not_found" | "wrong_password" | "role_mismatch"; userRole?: UserRole };
 
+function authEmail(identifier: string): string {
+  return `${identifier.trim().toLowerCase()}@simak.local`;
+}
+
+export async function getAuthenticatedUser(): Promise<User | null> {
+  const firebaseUser = auth.currentUser;
+  if (!firebaseUser) return null;
+  const profileSnap = await getDoc(doc(db, "users", firebaseUser.uid));
+  return profileSnap.exists()
+    ? { ...(profileSnap.data() as Omit<User, "id">), id: profileSnap.id }
+    : null;
+}
+
+export function logoutUser(): Promise<void> {
+  return signOut(auth);
+}
+
 // Authenticate user with detailed diagnostics (not found vs wrong password vs role mismatch)
 export async function checkAndAuthenticateUser(
   nim: string,
@@ -32,36 +55,26 @@ export async function checkAndAuthenticateUser(
   expectedRole?: UserRole
 ): Promise<AuthResult> {
   try {
-    const usersSnap = await getDocs(collection(db, "users"));
     const cleanNim = nim.trim();
-    let matchedDoc: User | null = null;
-    let docId = "";
+    if (!cleanNim || !password) return { success: false, reason: "not_found" };
 
-    for (const d of usersSnap.docs) {
-      const u = d.data() as User;
-      if (String(u.nim).trim().toLowerCase() === cleanNim.toLowerCase()) {
-        matchedDoc = u;
-        docId = d.id;
-        break;
-      }
-    }
-
-    if (!matchedDoc) {
+    const credential = await signInWithEmailAndPassword(auth, authEmail(cleanNim), password);
+    const profileSnap = await getDoc(doc(db, "users", credential.user.uid));
+    if (!profileSnap.exists()) {
+      await signOut(auth);
       return { success: false, reason: "not_found" };
     }
 
-    if (expectedRole && matchedDoc.role !== expectedRole) {
-      return { success: false, reason: "role_mismatch", userRole: matchedDoc.role };
+    const user = { ...(profileSnap.data() as Omit<User, "id">), id: profileSnap.id };
+    if (expectedRole && user.role !== expectedRole) {
+      await signOut(auth);
+      return { success: false, reason: "role_mismatch", userRole: user.role };
     }
-
-    if (matchedDoc.password && matchedDoc.password !== password) {
-      return { success: false, reason: "wrong_password" };
-    }
-
-    return { success: true, user: { ...matchedDoc, id: docId } };
+    return { success: true, user };
   } catch (err) {
     console.error("Auth error:", err);
-    return { success: false, reason: "not_found" };
+    const code = String(err?.code || "");
+    return { success: false, reason: code.includes("wrong-password") || code.includes("invalid-credential") ? "wrong_password" : "not_found" };
   }
 }
 
@@ -73,7 +86,7 @@ export async function authenticateUser(nim: string, password: string): Promise<U
 
 // Register a new user with optional group creation or joining
 export async function registerUser(
-  userData: Omit<User, "id" | "createdAt">,
+  userData: Omit<User, "id" | "createdAt"> & { password: string },
   groupDetails?: {
     isNewGroup: boolean;
     groupName?: string;
@@ -85,8 +98,22 @@ export async function registerUser(
     roleDescription?: string;
   }
 ): Promise<User> {
-  const userId = `user-${Date.now()}`;
+  const cleanNim = userData.nim.trim();
+  const credential = await createUserWithEmailAndPassword(auth, authEmail(cleanNim), userData.password);
+  await updateProfile(credential.user, { displayName: userData.name.trim() });
+  const userId = credential.user.uid;
   let assignedGroupId = userData.groupId;
+
+  const newUser: User = {
+    id: userId,
+    nim: cleanNim,
+    name: userData.name.trim(),
+    role: userData.role,
+    groupId: assignedGroupId,
+    createdAt: new Date().toISOString(),
+  };
+
+  await setDoc(doc(db, "users", userId), newUser);
 
   // If user is a student and wants to create a new group
   if (userData.role === "mahasiswa" && groupDetails?.isNewGroup && groupDetails.groupName) {
@@ -98,7 +125,7 @@ export async function registerUser(
         description: (groupDetails.projectDescription || "Deskripsi proyek perangkat lunak").trim(),
         supervisorNip: (groupDetails.supervisorNip || "198503152010121002").trim(),
         supervisorName: (groupDetails.supervisorName || "Dosen Pengampu PPL").trim(),
-        leaderNim: userData.nim,
+        leaderNim: cleanNim,
         createdAt: now,
         updatedAt: now,
       });
@@ -109,11 +136,11 @@ export async function registerUser(
       const memberRef = doc(db, "groups", assignedGroupId, "members", `member-${userData.nim}`);
       await setDoc(memberRef, {
         groupId: assignedGroupId,
-        nim: userData.nim,
-        name: userData.name,
+        nim: cleanNim,
+        name: newUser.name,
         roleInGroup: groupDetails.roleInGroup || "Project Manager",
         roleDescription: groupDetails.roleDescription || "",
-        id: `member-${userData.nim}`,
+        id: `member-${cleanNim}`,
       });
     } catch (e) {
       console.error("Failed to create group in Firestore:", e);
@@ -124,28 +151,20 @@ export async function registerUser(
       const memberRef = doc(db, "groups", assignedGroupId, "members", `member-${userData.nim}`);
       await setDoc(memberRef, {
         groupId: assignedGroupId,
-        nim: userData.nim,
-        name: userData.name,
+        nim: cleanNim,
+        name: newUser.name,
         roleInGroup: groupDetails?.roleInGroup || "Anggota Tim",
         roleDescription: groupDetails?.roleDescription || "",
-        id: `member-${userData.nim}`,
+        id: `member-${cleanNim}`,
       });
     } catch (e) {
       console.warn("Could not add member to group doc:", e);
     }
   }
 
-  const newUser: User = {
-    ...userData,
-    id: userId,
-    groupId: assignedGroupId,
-    createdAt: new Date().toISOString(),
-  };
-
-  try {
-    await setDoc(doc(db, "users", userId), newUser);
-  } catch (e) {
-    console.warn("Firestore write error during registration, saving locally:", e);
+  if (assignedGroupId !== newUser.groupId) {
+    newUser.groupId = assignedGroupId;
+    await updateDoc(doc(db, "users", userId), { groupId: assignedGroupId });
   }
   return newUser;
 }
@@ -163,16 +182,14 @@ export interface FirestoreStats {
 export async function fetchFirestoreStats(): Promise<FirestoreStats> {
   const stats: FirestoreStats = {
     connected: false,
-    databaseId: "ai-studio-scriptfix-d56a26c7-384c-4750-b65d-614734d34386",
-    projectId: "sentinel-498418",
-    userCount: 0,
+    databaseId: firebaseDatabaseId,
+    projectId: firebaseProjectId,
+    userCount: -1,
     groupCount: 0,
     lastChecked: new Date().toLocaleTimeString(),
   };
 
   try {
-    const usersSnap = await getDocs(collection(db, "users"));
-    stats.userCount = usersSnap.size;
     const groupsSnap = await getDocs(collection(db, "groups"));
     stats.groupCount = groupsSnap.size;
     stats.connected = true;

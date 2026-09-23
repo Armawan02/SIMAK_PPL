@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { fetchFirestoreStats, FirestoreStats } from "../lib/pplService";
+import { firebaseDatabaseId } from "../lib/firebase";
 import { Database, CheckCircle2, AlertCircle, RefreshCw, HelpCircle, ExternalLink, X } from "lucide-react";
 
 export const FirebaseStatusBadge: React.FC = () => {
@@ -33,13 +34,13 @@ export const FirebaseStatusBadge: React.FC = () => {
         title="Klik untuk melihat detail koneksi Google Cloud Firestore"
       >
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${stats?.connected ? "animate-ping bg-emerald-400" : "bg-rose-400"}`}></span>
+          <span className={`relative inline-flex rounded-full h-2 w-2 ${stats?.connected ? "bg-emerald-500" : "bg-rose-500"}`}></span>
         </span>
         <Database className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
         <span className="font-medium hidden md:inline text-slate-300">Firestore:</span>
-        <span className="font-mono text-emerald-400 text-[11px] font-semibold">
-          {stats ? `${stats.userCount} User • ${stats.groupCount} Kelompok` : "Terhubung"}
+        <span className={`font-mono text-[11px] font-semibold ${stats?.connected ? "text-emerald-400" : "text-rose-400"}`}>
+          {stats?.connected ? `${stats.groupCount} Kelompok` : "Tidak terhubung"}
         </span>
         <HelpCircle className="w-3 h-3 text-slate-500 group-hover:text-slate-300 ml-0.5" />
       </button>
@@ -71,18 +72,18 @@ export const FirebaseStatusBadge: React.FC = () => {
               <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">Project ID:</span>
-                  <span className="font-mono font-bold text-slate-200">sentinel-498418</span>
+                  <span className="font-mono font-bold text-slate-200">{stats?.projectId || "-"}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">Database ID:</span>
                   <span className="font-mono font-bold text-amber-400 select-all bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/20">
-                    ai-studio-scriptfix-d56a26c7-384c-4750-b65d-614734d34386
+                    {stats?.databaseId || "-"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-400">Koleksi Aktif:</span>
                   <span className="font-mono text-emerald-400">
-                    /users ({stats?.userCount ?? "..."}), /groups ({stats?.groupCount ?? "..."})
+                    /groups ({stats?.groupCount ?? "..."})
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
@@ -102,7 +103,7 @@ export const FirebaseStatusBadge: React.FC = () => {
                   Karena sistem ini terhubung ke database bernama:
                 </p>
                 <div className="p-2 rounded-lg bg-slate-950/80 font-mono text-[11px] text-amber-300 border border-amber-500/20 select-all">
-                  ai-studio-scriptfix-d56a26c7-384c-4750-b65d-614734d34386
+                  {firebaseDatabaseId}
                 </div>
                 <p className="text-slate-300 leading-relaxed">
                   Silakan buka <strong className="text-white">Cloud Firestore</strong> di Firebase Console, lalu pada bagian atas pilih <strong>Dropdown Database</strong> dan alihkan dari <em>(default)</em> ke database tersebut. Seluruh dokumen <code className="text-emerald-400 font-mono">users</code> dan <code className="text-emerald-400 font-mono">groups</code> akan langsung terlihat.

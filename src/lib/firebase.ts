@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
 import localFirebaseConfig from "../../firebase-applet-config.json";
 
@@ -14,6 +15,9 @@ const firebaseConfig = {
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || env.FIREBASE_MESSAGING_SENDER_ID || localFirebaseConfig.messagingSenderId,
 };
 
+export const firebaseProjectId = firebaseConfig.projectId;
+export const firebaseDatabaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+
 // Initialize Firebase App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
@@ -21,6 +25,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const db = firebaseConfig.firestoreDatabaseId
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
+export const auth = getAuth(app);
 
 // Connection test as required by Firebase skill
 export async function testFirestoreConnection(): Promise<boolean> {
@@ -30,8 +35,7 @@ export async function testFirestoreConnection(): Promise<boolean> {
     return true;
   } catch (error) {
     console.warn("Firestore connection check note:", error);
-    // Even if test doc doesn't exist, reachable means connected
-    return true;
+    return false;
   }
 }
 

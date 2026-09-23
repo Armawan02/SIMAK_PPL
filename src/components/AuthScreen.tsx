@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { User, UserRole, Group, OFFICIAL_TEAM_ROLES } from "../types";
 import { checkAndAuthenticateUser, registerUser } from "../lib/pplService";
+import { firebaseDatabaseId } from "../lib/firebase";
 import { 
   FolderKanban, 
   Lock, 
@@ -114,6 +115,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
 
     if (!cleanName || !cleanId) {
       setError("Nama Lengkap dan NIM/NIP wajib diisi.");
+      return;
+    }
+
+    if (selectedRole === "dosen") {
+      setError("Pendaftaran akun dosen dinonaktifkan. Gunakan akun dosen yang dibuat oleh administrator.");
       return;
     }
 
@@ -623,7 +629,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
             <Database className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-[11px]">Database Cloud Firestore Siap Digunakan</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">ai-studio-scriptfix-d56a26c7-384c-4750-b65d-614734d34386</span>
+          <span className="text-[10px] font-mono text-slate-500">{firebaseDatabaseId}</span>
         </div>
 
       </div>

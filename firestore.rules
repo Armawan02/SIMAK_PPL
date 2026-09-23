@@ -1,33 +1,62 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isDosen() {
+      return signedIn() && profile().role == 'dosen';
+    }
+
+    function isStudentInGroup(groupId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/groups/$(groupId)/members/member-$(profile().nim));
     }
 
     match /users/{userId} {
-      allow read: if true;
-      allow write: if true;
+      allow create: if signedIn() && request.auth.uid == userId
+        && request.resource.data.role == 'mahasiswa'
+        && request.resource.data.nim is string
+        && request.resource.data.name is string
+        && !('password' in request.resource.data);
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow update: if signedIn() && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.nim == resource.data.nim
+        && !('password' in request.resource.data);
+      allow delete: if false;
     }
 
+    // Group names and project titles are needed on the registration screen.
+    // Mutations still require an authenticated owner or lecturer.
     match /groups/{groupId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if signedIn();
+      allow update, delete: if isDosen() || isStudentInGroup(groupId);
 
       match /members/{memberId} {
-        allow read: if true;
-        allow write: if true;
+        allow read: if signedIn();
+        allow create: if isDosen() || (
+          isStudentInGroup(groupId) ||
+          (signedIn() && request.resource.data.nim == profile().nim)
+        );
+        allow update, delete: if isDosen() || isStudentInGroup(groupId);
       }
 
       match /tasks/{taskId} {
-        allow read: if true;
-        allow write: if true;
+        allow read: if signedIn();
+        allow write: if isDosen() || isStudentInGroup(groupId);
       }
     }
 
     match /test/connection {
-      allow read, write: if true;
+      allow read: if signedIn();
+      allow write: if false;
     }
   }
 }

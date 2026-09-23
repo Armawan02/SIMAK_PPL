@@ -5,7 +5,6 @@ export interface User {
   nim: string;
   name: string;
   role: UserRole;
-  password?: string;
   groupId?: string;
   createdAt: string;
 }

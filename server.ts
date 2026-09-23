@@ -9,8 +9,21 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '256kb' }));
+app.use(express.urlencoded({ extended: true, limit: '256kb' }));
+
+const requestWindows = new Map<string, { startedAt: number; count: number }>();
+function isRateLimited(req: express.Request, limit = 30): boolean {
+  const key = `${req.ip}:${req.path}`;
+  const now = Date.now();
+  const window = requestWindows.get(key);
+  if (!window || now - window.startedAt >= 60_000) {
+    requestWindows.set(key, { startedAt: now, count: 1 });
+    return false;
+  }
+  window.count += 1;
+  return window.count > limit;
+}
 
 // Lazy GoogleGenAI initialization
 let aiClient: GoogleGenAI | null = null;
@@ -35,20 +48,33 @@ app.get('/api/health', (req, res) => {
 
 // Endpoint to test live Google Apps Script Web App URL
 app.post('/api/test-appscript', async (req, res) => {
+  if (isRateLimited(req)) return res.status(429).json({ error: 'Terlalu banyak permintaan. Coba lagi nanti.' });
   const { url, method = 'GET', payload, params } = req.body;
 
   if (!url || typeof url !== 'string') {
     return res.status(400).json({ error: 'URL Google Apps Script wajib diisi.' });
   }
 
-  if (!url.includes('script.google.com') && !url.includes('script.googleusercontent.com')) {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url.trim());
+  } catch {
+    return res.status(400).json({ error: 'URL tidak valid.' });
+  }
+
+  const allowedHosts = new Set(['script.google.com', 'script.googleusercontent.com']);
+  if (parsedUrl.protocol !== 'https:' || !allowedHosts.has(parsedUrl.hostname.toLowerCase())) {
     return res.status(400).json({
       error: 'URL harus berupa URL Google Apps Script yang valid (misalnya: https://script.google.com/macros/s/.../exec)'
     });
   }
 
+  if (method !== 'GET' && method !== 'POST') {
+    return res.status(400).json({ error: 'Method hanya boleh GET atau POST.' });
+  }
+
   const startTime = Date.now();
-  let targetUrl = url.trim();
+  let targetUrl = parsedUrl.toString();
 
   // Add query parameters if GET
   if (method === 'GET' && params && typeof params === 'object') {
@@ -68,7 +94,8 @@ app.post('/api/test-appscript', async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppsScriptInspector/1.0',
         'Accept': 'application/json, text/plain, */*'
       },
-      redirect: 'follow'
+      redirect: 'manual',
+      signal: AbortSignal.timeout(8000)
     };
 
     if (method === 'POST') {
@@ -138,12 +165,23 @@ app.post('/api/test-appscript', async (req, res) => {
 
 // Endpoint to analyze & fix Google Apps Script code with Gemini AI
 app.post('/api/analyze', async (req, res) => {
+  if (isRateLimited(req, 10)) return res.status(429).json({ error: 'Batas analisis tercapai. Coba lagi dalam satu menit.' });
   const { code, htmlCode, errorMessage, url, issueType } = req.body;
 
   if (!code && !htmlCode && !errorMessage && !url) {
     return res.status(400).json({
       error: 'Mohon masukkan kode Apps Script, pesan error, atau URL untuk diperiksa.'
     });
+  }
+
+  const fields = { code, htmlCode, errorMessage, url, issueType };
+  for (const [field, value] of Object.entries(fields)) {
+    if (value !== undefined && typeof value !== 'string') {
+      return res.status(400).json({ error: `Field ${field} harus berupa teks.` });
+    }
+    if (typeof value === 'string' && value.length > 100_000) {
+      return res.status(413).json({ error: `Field ${field} terlalu panjang.` });
+    }
   }
 
   const ai = getAIClient();

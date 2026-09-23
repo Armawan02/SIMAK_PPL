@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { User, Group } from "./types";
 import { HeaderNav } from "./components/HeaderNav";
-import { AuthModal } from "./components/AuthModal";
 import { AuthScreen } from "./components/AuthScreen";
 import { DosenDashboard } from "./components/DosenDashboard";
 import { MahasiswaDashboard } from "./components/MahasiswaDashboard";
-import { subscribeToGroups, createGroup, addMemberToGroup } from "./lib/pplService";
+import { auth, firebaseDatabaseId } from "./lib/firebase";
+import { subscribeToGroups, createGroup, addMemberToGroup, getAuthenticatedUser, logoutUser } from "./lib/pplService";
 import { ArrowLeft, FolderKanban, Plus } from "lucide-react";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
   // Firestore Groups
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -23,45 +22,47 @@ export default function App() {
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [newGroupDesc, setNewGroupDesc] = useState("");
 
-  // Initial Boot: Check session & subscribe to Firestore groups
+  // Restore the Firebase Auth session and subscribe to public group metadata.
   useEffect(() => {
-    // Check if user has saved session
-    const savedUserStr = localStorage.getItem("simak_user");
-    if (savedUserStr) {
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        setCurrentUser(null);
+        return;
+      }
       try {
-        const parsed = JSON.parse(savedUserStr);
-        // Verify user object validity
-        if (parsed && parsed.nim && parsed.name) {
-          setCurrentUser(parsed);
-        } else {
-          setCurrentUser(null);
-        }
-      } catch {
+        setCurrentUser(await getAuthenticatedUser());
+      } catch (error) {
+        console.error("Failed to restore authenticated profile:", error);
         setCurrentUser(null);
       }
-    } else {
-      setCurrentUser(null);
-    }
+    });
 
-    // Subscribe to groups real-time from Firestore
     const unsub = subscribeToGroups((groupList) => {
       setGroups(groupList);
     });
 
-    return () => unsub();
+    return () => {
+      unsubAuth();
+      unsub();
+    };
   }, []);
 
   // Update selectedGroup whenever groups or currentUser changes
   useEffect(() => {
-    if (groups.length === 0) {
+    if (!currentUser || groups.length === 0) {
       setSelectedGroup(null);
       return;
     }
 
+    if (currentUser.role === "mahasiswa") {
+      setSelectedGroup(groups.find((g) => g.id === currentUser.groupId) || null);
+      return;
+    }
+
     if (!selectedGroup) {
-      if (currentUser?.groupId) {
+      if (currentUser.groupId) {
         const found = groups.find((g) => g.id === currentUser.groupId);
-        setSelectedGroup(found || groups[0]);
+        setSelectedGroup(found || null);
       } else {
         setSelectedGroup(groups[0]);
       }
@@ -75,8 +76,6 @@ export default function App() {
 
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
-    localStorage.setItem("simak_user", JSON.stringify(user));
-    setIsAuthModalOpen(false);
     setDosenViewMode("overview");
 
     if (user.groupId) {
@@ -85,8 +84,8 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("simak_user");
+  const handleLogout = async () => {
+    await logoutUser();
     setCurrentUser(null);
     setSelectedGroup(null);
   };
@@ -119,7 +118,6 @@ export default function App() {
 
       const updatedUser = { ...currentUser, groupId };
       setCurrentUser(updatedUser);
-      localStorage.setItem("simak_user", JSON.stringify(updatedUser));
       setIsNewGroupModalOpen(false);
     } catch (err) {
       console.error("Failed to create group:", err);
@@ -132,7 +130,7 @@ export default function App() {
       <HeaderNav
         currentUser={currentUser}
         onLogout={handleLogout}
-        onSwitchUser={() => setIsAuthModalOpen(true)}
+        onSwitchUser={() => undefined}
       />
 
       {/* Main Content Area */}
@@ -189,7 +187,7 @@ export default function App() {
             <MahasiswaDashboard
               currentUser={currentUser}
               group={selectedGroup}
-              allGroups={groups}
+              allGroups={groups.filter((g) => g.id === currentUser.groupId)}
               onSelectGroup={(gid) => {
                 const found = groups.find((g) => g.id === gid);
                 if (found) setSelectedGroup(found);
@@ -295,19 +293,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Auth Modal for Quick Switch */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={handleLoginSuccess}
-      />
-
       {/* Footer with database & project info */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-400">SIMAK PPL</span>
-            <span>• Cloud Firestore: <code className="font-mono text-emerald-400">ai-studio-scriptfix-d56a26c7-384c-4750-b65d-614734d34386</code></span>
+            <span>• Cloud Firestore: <code className="font-mono text-emerald-400">{firebaseDatabaseId}</code></span>
           </div>
           <span className="text-slate-500">
             Realtime Kanban &amp; Monitoring Progres Kelompok Mahasiswa &amp; Dosen
