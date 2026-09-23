@@ -72,7 +72,7 @@ export async function checkAndAuthenticateUser(
     }
 
     const user = { ...(profileSnap.data() as Omit<User, "id">), id: profileSnap.id };
-    if (expectedRole && user.role !== expectedRole) {
+    if (expectedRole && user.role !== "admin" && user.role !== expectedRole) {
       await signOut(auth);
       return { success: false, reason: "role_mismatch", userRole: user.role };
     }

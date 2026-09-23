@@ -199,9 +199,31 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
       </div>
 
       {/* Main Card */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md relative overflow-hidden">
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-md relative overflow-hidden lg:grid lg:grid-cols-[0.85fr_1.15fr]">
         {/* Glow Accent */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 p-8 text-white">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border-[28px] border-white/10" />
+          <div className="absolute -bottom-28 -left-20 h-72 w-72 rounded-full border-[36px] border-white/10" />
+          <div className="relative z-10">
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+              <FolderKanban className="h-6 w-6" />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-100">Portal Akademik</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight">SIMAK PPL</h2>
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-blue-100">
+              Pantau progres proyek, kolaborasi tim, dan evaluasi pekerjaan dalam satu ruang kerja.
+            </p>
+          </div>
+          <div className="relative z-10 space-y-3 text-xs text-blue-100">
+            <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-white" /> Monitoring progres realtime</div>
+            <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-white" /> Kolaborasi tugas kelompok</div>
+            <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-white" /> Ruang evaluasi dosen</div>
+          </div>
+        </aside>
+
+        <div className="relative z-10 p-6 sm:p-8">
 
         {/* Tab Switcher: Login vs Register */}
         <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-950/80 border border-slate-800 rounded-2xl mb-6">
@@ -241,7 +263,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
           <label className="block text-xs font-semibold text-slate-300 mb-2">
             Pilih Peran Anda:
           </label>
-          <div className={`grid gap-3 ${mode === "login" ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1"}`}>
+          <div className={`grid gap-3 ${mode === "login" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
             <button
               type="button"
               onClick={() => {
@@ -286,30 +308,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                 <div>
                   <p className="text-xs font-bold text-slate-200">Dosen Pengampu</p>
                   <p className="text-[11px] text-slate-400">Login akun yang dibuat admin</p>
-                </div>
-              </button>
-            )}
-            {mode === "login" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRole("admin");
-                  setError(null);
-                }}
-                className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
-                  selectedRole === "admin"
-                    ? "bg-amber-600/15 border-amber-500 text-white shadow-md shadow-amber-500/10"
-                    : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
-                }`}
-              >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                  selectedRole === "admin" ? "bg-amber-600 text-white" : "bg-slate-800 text-slate-400"
-                }`}>
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-200">Administrator</p>
-                  <p className="text-[11px] text-slate-400">Akses pengelolaan sistem</p>
                 </div>
               </button>
             )}
@@ -664,6 +662,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
           <span className="text-[10px] text-slate-500">Data tersimpan secara aman</span>
         </div>
 
+        </div>
       </div>
     </div>
   );
