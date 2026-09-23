@@ -18,6 +18,18 @@ export interface GroupMember {
   roleDescription?: string; // Penjelasan tugas & tanggung jawab peran dalam tim
 }
 
+export interface MembershipRequest {
+  id: string;
+  groupId: string;
+  userId: string;
+  nim: string;
+  name: string;
+  roleInGroup: string;
+  roleDescription?: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+}
+
 export interface TeamRoleDefinition {
   id: number;
   role: string;

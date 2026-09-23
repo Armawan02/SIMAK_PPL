@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { User } from "../types";
-import { FirebaseStatusBadge } from "./FirebaseStatusBadge";
 import { 
   FolderKanban, 
   LogOut, 
   GraduationCap, 
   UserCheck, 
-  Sparkles,
-  LogIn
+  LogIn,
+  CalendarDays,
+  Sun,
+  Moon
 } from "lucide-react";
 
 interface HeaderNavProps {
@@ -21,6 +22,30 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   onLogout,
   onSwitchUser,
 }) => {
+  const [isLightTheme, setIsLightTheme] = useState(() => localStorage.getItem("simak_theme") === "light");
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = isLightTheme ? "light" : "dark";
+    localStorage.setItem("simak_theme", isLightTheme ? "light" : "dark");
+  }, [isLightTheme]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const dateLabel = new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(now);
+  const timeLabel = new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(now);
+
   return (
     <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -41,10 +66,25 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
           </div>
         </div>
 
-        {/* Right side: Database Status Badge & User Profile */}
+        {/* Right side: Date, theme, and user profile */}
         <div className="flex items-center gap-3">
-          {/* Live Firestore Connection Badge */}
-          <FirebaseStatusBadge />
+          <div className="hidden md:flex items-center gap-2 text-right text-slate-400">
+            <CalendarDays className="w-4 h-4 text-blue-400" />
+            <div>
+              <p className="text-[11px] font-semibold text-slate-200 leading-tight">{timeLabel}</p>
+              <p className="text-[10px] leading-tight">{dateLabel}</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsLightTheme((value) => !value)}
+            title={isLightTheme ? "Gunakan tema gelap" : "Gunakan tema terang"}
+            aria-label={isLightTheme ? "Gunakan tema gelap" : "Gunakan tema terang"}
+            className="p-2 rounded-xl border border-slate-700/80 text-slate-300 hover:text-amber-300 hover:border-amber-400/50 transition-colors cursor-pointer"
+          >
+            {isLightTheme ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
 
           {currentUser ? (
             <div className="flex items-center gap-2.5 pl-2 border-l border-slate-800">

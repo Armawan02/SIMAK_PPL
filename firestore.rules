@@ -24,17 +24,25 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/groups/$(groupId)).data.leaderNim == profile().nim;
     }
 
+    function isGroupLeader(groupId) {
+      return signedIn()
+        && get(/databases/$(database)/documents/groups/$(groupId)).data.leaderNim == profile().nim;
+    }
+
     match /users/{userId} {
       allow create: if signedIn() && request.auth.uid == userId
         && request.resource.data.role == 'mahasiswa'
         && request.resource.data.nim is string
         && request.resource.data.name is string
+        && !('groupId' in request.resource.data)
         && !('password' in request.resource.data);
       allow read: if signedIn() && request.auth.uid == userId;
       allow update: if signedIn() && request.auth.uid == userId
         && request.resource.data.role == resource.data.role
         && request.resource.data.nim == resource.data.nim
-        && !('password' in request.resource.data);
+        && !('password' in request.resource.data)
+        && (resource.data.groupId == request.resource.data.groupId
+          || (request.resource.data.groupId is string && isGroupLeader(request.resource.data.groupId)));
       allow delete: if false;
     }
 
@@ -47,11 +55,20 @@ service cloud.firestore {
 
       match /members/{memberId} {
         allow read: if signedIn();
-        allow create: if isDosen() || (
-          isStudentInGroup(groupId) ||
-          (signedIn() && request.resource.data.nim == profile().nim)
-        );
-        allow update, delete: if isDosen() || isStudentInGroup(groupId);
+        allow create, update, delete: if isDosen() || isGroupLeader(groupId);
+      }
+
+      match /joinRequests/{requestId} {
+        allow read: if isProjectManager(groupId)
+          || (signedIn() && request.auth.uid == requestId);
+        allow create: if signedIn()
+          && request.auth.uid == requestId
+          && request.resource.data.groupId == groupId
+          && request.resource.data.status == 'pending'
+          && request.resource.data.nim == profile().nim;
+        allow update: if isProjectManager(groupId);
+        allow delete: if isProjectManager(groupId)
+          || (signedIn() && request.auth.uid == requestId);
       }
 
       match /tasks/{taskId} {

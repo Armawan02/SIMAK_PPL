@@ -19,7 +19,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, db, firebaseDatabaseId, firebaseProjectId } from "./firebase";
-import { User, Group, GroupMember, Task, TaskStatus, UserRole } from "../types";
+import { User, Group, GroupMember, MembershipRequest, Task, TaskStatus, UserRole } from "../types";
 
 // Empty initializer - no dummy data for production
 export async function seedInitialDataIfEmpty(): Promise<void> {
@@ -46,6 +46,11 @@ export async function getAuthenticatedUser(): Promise<User | null> {
 
 export function logoutUser(): Promise<void> {
   return signOut(auth);
+}
+
+export function updateAuthenticatedUserGroup(groupId: string): Promise<void> {
+  if (!auth.currentUser) return Promise.reject(new Error("Pengguna belum login."));
+  return updateDoc(doc(db, "users", auth.currentUser.uid), { groupId });
 }
 
 // Authenticate user with detailed diagnostics (not found vs wrong password vs role mismatch)
@@ -103,13 +108,14 @@ export async function registerUser(
   const userId = credential.user.uid;
   let assignedGroupId = userData.groupId;
 
+  const isJoiningExistingGroup = userData.role === "mahasiswa" && Boolean(assignedGroupId) && !groupDetails?.isNewGroup;
   const newUser: User = {
     id: userId,
     nim: cleanNim,
     name: userData.name.trim(),
     role: userData.role,
-    groupId: assignedGroupId,
     createdAt: new Date().toISOString(),
+    ...(isJoiningExistingGroup || !assignedGroupId ? {} : { groupId: assignedGroupId }),
   };
 
   await setDoc(doc(db, "users", userId), newUser);
@@ -144,28 +150,54 @@ export async function registerUser(
     } catch (e) {
       console.error("Failed to create group in Firestore:", e);
     }
-  } else if (userData.role === "mahasiswa" && assignedGroupId) {
-    // If student joined an existing group, register as member
+  } else if (isJoiningExistingGroup && assignedGroupId) {
+    // Existing-group membership is pending Project Manager approval.
     try {
-      const memberRef = doc(db, "groups", assignedGroupId, "members", `member-${userData.nim}`);
-      await setDoc(memberRef, {
+      const requestRef = doc(db, "groups", assignedGroupId, "joinRequests", userId);
+      await setDoc(requestRef, {
         groupId: assignedGroupId,
+        userId,
         nim: cleanNim,
         name: newUser.name,
         roleInGroup: groupDetails?.roleInGroup || "Anggota Tim",
         roleDescription: groupDetails?.roleDescription || "",
-        id: `member-${cleanNim}`,
+        status: "pending",
+        createdAt: new Date().toISOString(),
       });
     } catch (e) {
       console.warn("Could not add member to group doc:", e);
     }
   }
 
-  if (assignedGroupId !== newUser.groupId) {
+  if (!isJoiningExistingGroup && assignedGroupId !== newUser.groupId) {
     newUser.groupId = assignedGroupId;
     await updateDoc(doc(db, "users", userId), { groupId: assignedGroupId });
   }
   return newUser;
+}
+
+export function subscribeToMembershipRequests(
+  groupId: string,
+  callback: (requests: MembershipRequest[]) => void
+): Unsubscribe {
+  return onSnapshot(collection(db, "groups", groupId, "joinRequests"), (snapshot) => {
+    callback(snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<MembershipRequest, "id">) })));
+  }, () => callback([]));
+}
+
+export async function approveMembershipRequest(request: MembershipRequest): Promise<void> {
+  await addMemberToGroup(request.groupId, {
+    nim: request.nim,
+    name: request.name,
+    roleInGroup: request.roleInGroup,
+    roleDescription: request.roleDescription,
+  });
+  await updateDoc(doc(db, "users", request.userId), { groupId: request.groupId });
+  await updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "approved" });
+}
+
+export function rejectMembershipRequest(request: MembershipRequest): Promise<void> {
+  return updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "rejected" });
 }
 
 // Live database diagnostic stats

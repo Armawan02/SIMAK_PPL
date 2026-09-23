@@ -6,7 +6,7 @@ import { AuthScreen } from "./components/AuthScreen";
 import { DosenDashboard } from "./components/DosenDashboard";
 import { MahasiswaDashboard } from "./components/MahasiswaDashboard";
 import { auth } from "./lib/firebase";
-import { subscribeToGroups, createGroup, addMemberToGroup, getAuthenticatedUser, logoutUser } from "./lib/pplService";
+import { subscribeToGroups, createGroup, addMemberToGroup, getAuthenticatedUser, logoutUser, updateAuthenticatedUserGroup } from "./lib/pplService";
 import { ArrowLeft, FolderKanban, Plus } from "lucide-react";
 
 export default function App() {
@@ -115,6 +115,7 @@ export default function App() {
         name: currentUser.name,
         roleInGroup: "Ketua Tim",
       });
+      await updateAuthenticatedUserGroup(groupId);
 
       const updatedUser = { ...currentUser, groupId };
       setCurrentUser(updatedUser);
