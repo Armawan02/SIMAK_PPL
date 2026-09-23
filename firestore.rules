@@ -110,9 +110,14 @@ service cloud.firestore {
 
         match /comments/{commentId} {
           allow read: if signedIn();
-          allow create: if isAdmin() || isDosen() || isStudentInGroup(groupId);
+          allow create: if (isAdmin() || isDosen() || isStudentInGroup(groupId))
+            && request.resource.data.authorId == request.auth.uid
+            && request.resource.data.taskId == taskId;
           allow update, delete: if isAdmin()
-            || (signedIn() && resource.data.authorId == request.auth.uid);
+            || (signedIn()
+              && resource.data.authorId == request.auth.uid
+              && request.resource.data.authorId == resource.data.authorId
+              && request.resource.data.taskId == resource.data.taskId);
         }
       }
 
