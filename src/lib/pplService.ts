@@ -85,6 +85,7 @@ export function subscribeToActivities(groupId: string, callback: (activities: Ac
 export function subscribeToTaskComments(groupId: string, taskId: string, callback: (comments: TaskComment[]) => void): Unsubscribe {
   return onSnapshot(collection(db, "groups", groupId, "tasks", taskId, "comments"), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<TaskComment, "id">) }))
+      .filter((comment) => Boolean(comment.authorId))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   }, () => callback([]));
 }
