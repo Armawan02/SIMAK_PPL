@@ -58,7 +58,7 @@ export async function checkAndAuthenticateUser(
     const cleanNim = nim.trim();
     if (!cleanNim || !password) return { success: false, reason: "not_found" };
 
-    const credential = await signInWithEmailAndPassword(auth, authEmail(cleanNim), password);
+      const credential = await signInWithEmailAndPassword(auth, authEmail(cleanNim), password);
     const profileSnap = await getDoc(doc(db, "users", credential.user.uid));
     if (!profileSnap.exists()) {
       await signOut(auth);
@@ -72,8 +72,7 @@ export async function checkAndAuthenticateUser(
     }
     return { success: true, user };
   } catch (err) {
-    console.error("Auth error:", err);
-    const code = String(err?.code || "");
+    const code = String(err && typeof err === "object" && "code" in err ? err.code : "");
     return { success: false, reason: code.includes("wrong-password") || code.includes("invalid-credential") ? "wrong_password" : "not_found" };
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { fetchFirestoreStats, FirestoreStats } from "../lib/pplService";
 import { firebaseDatabaseId } from "../lib/firebase";
-import { Database, CheckCircle2, AlertCircle, RefreshCw, HelpCircle, ExternalLink, X } from "lucide-react";
+import { Database, AlertCircle, RefreshCw, HelpCircle, X } from "lucide-react";
 
 export const FirebaseStatusBadge: React.FC = () => {
   const [stats, setStats] = useState<FirestoreStats | null>(null);
