@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { User, UserRole, Group, OFFICIAL_TEAM_ROLES } from "../types";
 import { checkAndAuthenticateUser, registerUser } from "../lib/pplService";
-import { firebaseDatabaseId } from "../lib/firebase";
 import { 
   FolderKanban, 
   Lock, 
@@ -622,14 +621,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
           </div>
         </div>
 
-        {/* Database Status Indicator & Note */}
+        {/* Service Status Indicator */}
         <div className="mt-4 p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <Database className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="text-[11px]">Database Cloud Firestore Siap Digunakan</span>
+            <span className="text-[11px]">Layanan sinkronisasi data siap digunakan</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">{firebaseDatabaseId}</span>
+          <span className="text-[10px] text-slate-500">Data tersimpan secara aman</span>
         </div>
 
       </div>

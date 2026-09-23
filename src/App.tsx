@@ -5,7 +5,7 @@ import { HeaderNav } from "./components/HeaderNav";
 import { AuthScreen } from "./components/AuthScreen";
 import { DosenDashboard } from "./components/DosenDashboard";
 import { MahasiswaDashboard } from "./components/MahasiswaDashboard";
-import { auth, firebaseDatabaseId } from "./lib/firebase";
+import { auth } from "./lib/firebase";
 import { subscribeToGroups, createGroup, addMemberToGroup, getAuthenticatedUser, logoutUser } from "./lib/pplService";
 import { ArrowLeft, FolderKanban, Plus } from "lucide-react";
 
@@ -293,12 +293,12 @@ export default function App() {
         </div>
       )}
 
-      {/* Footer with database & project info */}
+      {/* Footer with product information */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-400">SIMAK PPL</span>
-            <span>• Cloud Firestore: <code className="font-mono text-emerald-400">{firebaseDatabaseId}</code></span>
+            <span>• Sinkronisasi data realtime</span>
           </div>
           <span className="text-slate-500">
             Realtime Kanban &amp; Monitoring Progres Kelompok Mahasiswa &amp; Dosen

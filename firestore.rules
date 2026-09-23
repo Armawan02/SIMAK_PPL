@@ -15,7 +15,8 @@ service cloud.firestore {
 
     function isStudentInGroup(groupId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/groups/$(groupId)/members/member-$(profile().nim));
+        && profile().role == 'mahasiswa'
+        && profile().groupId == groupId;
     }
 
     match /users/{userId} {
