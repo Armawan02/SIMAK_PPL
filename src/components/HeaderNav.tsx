@@ -62,7 +62,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
   }).format(now);
 
   return (
-    <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
+    <header className="app-header sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 lg:px-8 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Logo & Title */}
         <div className="flex items-center gap-3">
@@ -76,7 +76,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-400 hidden sm:block">
-              Monitoring Progress Kelompok Mahasiswa &amp; Dosen
+              Sistem Manajemen &amp; Monitoring Kelompok Proyek Perangkat Lunak
             </p>
           </div>
         </div>

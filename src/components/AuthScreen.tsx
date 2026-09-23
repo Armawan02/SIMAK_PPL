@@ -180,7 +180,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-3">
           <FolderKanban className="w-3.5 h-3.5" />
-          <span>Sistem Informasi Monitoring Kelompok PPL</span>
+          <span>Sistem Manajemen dan Monitoring Kelompok Proyek Perangkat Lunak</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
           Portal SIMAK PPL

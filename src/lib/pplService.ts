@@ -85,19 +85,28 @@ export function subscribeToActivities(groupId: string, callback: (activities: Ac
 export function subscribeToTaskComments(groupId: string, taskId: string, callback: (comments: TaskComment[]) => void): Unsubscribe {
   return onSnapshot(collection(db, "groups", groupId, "tasks", taskId, "comments"), (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<TaskComment, "id">) }))
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   }, () => callback([]));
 }
 
 export async function addTaskComment(groupId: string, taskId: string, author: User, message: string): Promise<void> {
   await addDoc(collection(db, "groups", groupId, "tasks", taskId, "comments"), {
     taskId,
+    authorId: author.id,
     authorName: author.name,
     authorNim: author.nim,
     message: message.trim(),
     createdAt: new Date().toISOString(),
   });
   await addActivity(groupId, `${author.name} menambahkan komentar pada tugas.`);
+}
+
+export async function updateTaskComment(groupId: string, taskId: string, commentId: string, message: string): Promise<void> {
+  await updateDoc(doc(db, "groups", groupId, "tasks", taskId, "comments", commentId), { message: message.trim() });
+}
+
+export async function deleteTaskComment(groupId: string, taskId: string, commentId: string): Promise<void> {
+  await deleteDoc(doc(db, "groups", groupId, "tasks", taskId, "comments", commentId));
 }
 
 export function updateAuthenticatedUserGroup(groupId: string): Promise<void> {

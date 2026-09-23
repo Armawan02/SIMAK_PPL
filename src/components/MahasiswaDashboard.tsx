@@ -15,7 +15,9 @@ import {
   approveMembershipRequest,
   rejectMembershipRequest
   ,subscribeToTaskComments,
-  addTaskComment
+  addTaskComment,
+  updateTaskComment,
+  deleteTaskComment
 } from "../lib/pplService";
 import { TaskModal } from "./TaskModal";
 import { 
@@ -66,6 +68,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const [openCommentsTaskId, setOpenCommentsTaskId] = useState<string | null>(null);
   const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
   const [commentDraft, setCommentDraft] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [membershipRequests, setMembershipRequests] = useState<MembershipRequest[]>([]);
   const [requestRoles, setRequestRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -290,8 +293,18 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!openCommentsTaskId || !commentDraft.trim()) return;
-    await addTaskComment(group.id, openCommentsTaskId, currentUser, commentDraft);
+    if (editingCommentId) {
+      await updateTaskComment(group.id, openCommentsTaskId, editingCommentId, commentDraft);
+      setEditingCommentId(null);
+    } else {
+      await addTaskComment(group.id, openCommentsTaskId, currentUser, commentDraft);
+    }
     setCommentDraft("");
+  };
+
+  const handleDeleteComment = async (taskId: string, commentId: string) => {
+    if (!window.confirm("Hapus komentar ini?")) return;
+    await deleteTaskComment(group.id, taskId, commentId);
   };
 
   const handleSaveDosen = async (e: React.FormEvent) => {
@@ -698,13 +711,22 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                         <div className="mt-2 space-y-2">
                           {taskComments.map((comment) => (
                             <div key={comment.id} className="rounded-lg bg-slate-900 border border-slate-800 p-2">
-                              <p className="text-[10px] text-slate-300"><strong>{comment.authorName}</strong>: {comment.message}</p>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="text-[10px] text-slate-300"><strong>{comment.authorName}</strong>: {comment.message}</p>
+                                {comment.authorId === currentUser.id && (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button type="button" title="Edit komentar" onClick={() => { setEditingCommentId(comment.id); setCommentDraft(comment.message); }} className="text-[9px] text-blue-400 hover:text-blue-300">Edit</button>
+                                    <button type="button" title="Hapus komentar" onClick={() => handleDeleteComment(task.id, comment.id)} className="text-[9px] text-rose-400 hover:text-rose-300">Hapus</button>
+                                  </div>
+                                )}
+                              </div>
                               <p className="text-[9px] text-slate-500 mt-1">{new Date(comment.createdAt).toLocaleString("id-ID")}</p>
                             </div>
                           ))}
                           <form onSubmit={handleCommentSubmit} className="flex gap-1">
-                            <input value={commentDraft} onChange={(e) => setCommentDraft(e.target.value)} placeholder="Tulis komentar..." className="min-w-0 flex-1 rounded-lg bg-slate-900 border border-slate-800 px-2 py-1.5 text-[10px] text-slate-200" />
-                            <button type="submit" title="Kirim komentar" className="rounded-lg bg-blue-600 px-2 text-white"><Send className="w-3 h-3" /></button>
+                            <input value={commentDraft} onChange={(e) => setCommentDraft(e.target.value)} placeholder={editingCommentId ? "Edit komentar..." : "Tulis komentar..."} className="min-w-0 flex-1 rounded-lg bg-slate-900 border border-slate-800 px-2 py-1.5 text-[10px] text-slate-200" />
+                            <button type="submit" title={editingCommentId ? "Simpan komentar" : "Kirim komentar"} className="rounded-lg bg-blue-600 px-2 text-white"><Send className="w-3 h-3" /></button>
+                            {editingCommentId && <button type="button" onClick={() => { setEditingCommentId(null); setCommentDraft(""); }} className="rounded-lg bg-slate-700 px-2 text-[10px] text-white">Batal</button>}
                           </form>
                         </div>
                       )}

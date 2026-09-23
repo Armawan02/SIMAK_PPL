@@ -118,6 +118,7 @@ export interface Task {
 export interface TaskComment {
   id: string;
   taskId: string;
+  authorId: string;
   authorName: string;
   authorNim: string;
   message: string;

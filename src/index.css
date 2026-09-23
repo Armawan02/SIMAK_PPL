@@ -50,6 +50,86 @@ html[data-theme="light"] .border-slate-700\/80 {
   border-color: #cbd5e1;
 }
 
+html[data-theme="light"] .app-header {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: #dbe4ef !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme="light"] .welcome-banner {
+  background-image: linear-gradient(115deg, #e0e7ff 0%, #f8fafc 52%, #dbeafe 100%) !important;
+  background-color: #f8fafc !important;
+  border-color: #c7d2fe !important;
+  box-shadow: 0 14px 32px rgba(30, 64, 175, 0.1);
+}
+
+html[data-theme="light"] .welcome-banner .text-slate-100,
+html[data-theme="light"] .welcome-banner .text-slate-200 {
+  color: #172554 !important;
+}
+
+html[data-theme="light"] .welcome-banner .text-slate-300,
+html[data-theme="light"] .welcome-banner .text-slate-400 {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .welcome-banner .bg-purple-500\/20 {
+  background-color: #ede9fe !important;
+  color: #6d28d9 !important;
+  border-color: #c4b5fd !important;
+}
+
+html[data-theme="light"] .bg-slate-950,
+html[data-theme="light"] .bg-slate-950\/90,
+html[data-theme="light"] .bg-slate-950\/80,
+html[data-theme="light"] .bg-slate-950\/70,
+html[data-theme="light"] .bg-slate-950\/60,
+html[data-theme="light"] .bg-slate-900,
+html[data-theme="light"] .bg-slate-900\/90,
+html[data-theme="light"] .bg-slate-900\/80,
+html[data-theme="light"] .bg-slate-900\/70,
+html[data-theme="light"] .bg-slate-900\/60 {
+  background-color: #ffffff !important;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] textarea,
+html[data-theme="light"] select {
+  color: #172033 !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-theme="light"] .text-slate-100,
+html[data-theme="light"] .text-slate-200 {
+  color: #172033 !important;
+}
+
+html[data-theme="light"] .text-slate-300,
+html[data-theme="light"] .text-slate-400 {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .text-slate-500 {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .border-slate-800,
+html[data-theme="light"] .border-slate-800\/80,
+html[data-theme="light"] .border-slate-700,
+html[data-theme="light"] .border-slate-700\/80 {
+  border-color: #cbd5e1 !important;
+}
+
+html[data-theme="light"] .hover\:bg-slate-800:hover {
+  background-color: #e2e8f0 !important;
+}
+
 @layer utilities {
   .glass {
     background: rgba(15, 23, 42, 0.75);

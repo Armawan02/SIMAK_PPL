@@ -136,13 +136,13 @@ export const DosenDashboard: React.FC<DosenDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/20 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="welcome-banner bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/20 rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-xl text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
                 <GraduationCap className="w-4 h-4" />
-                Portal Dosen Pengampu
+                {currentUser.role === "admin" ? "Portal Administrator" : "Portal Dosen Pengampu"}
               </span>
               <span className="text-xs text-slate-400 font-mono">NIP: {currentUser.nim}</span>
             </div>
@@ -150,7 +150,9 @@ export const DosenDashboard: React.FC<DosenDashboardProps> = ({
               Selamat Datang, {currentUser.name}
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 mt-1.5 max-w-2xl leading-relaxed">
-              Pantau progres implementasi proyek perangkat lunak dari seluruh kelompok secara real-time melalui integrasi Cloud Firestore.
+              {currentUser.role === "admin"
+                ? "Kelola dan pantau aktivitas kelompok, anggota, serta progres proyek secara terpusat."
+                : "Pantau progres implementasi proyek perangkat lunak dari seluruh kelompok secara real-time."}
             </p>
           </div>
 

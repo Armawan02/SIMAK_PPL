@@ -111,7 +111,8 @@ service cloud.firestore {
         match /comments/{commentId} {
           allow read: if signedIn();
           allow create: if isAdmin() || isDosen() || isStudentInGroup(groupId);
-          allow update, delete: if isAdmin();
+          allow update, delete: if isAdmin()
+            || (signedIn() && resource.data.authorId == request.auth.uid);
         }
       }
 

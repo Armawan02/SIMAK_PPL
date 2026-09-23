@@ -220,7 +220,7 @@ export default function App() {
             <span>• Sinkronisasi data realtime</span>
           </div>
           <span className="text-slate-500">
-            Realtime Kanban &amp; Monitoring Progres Kelompok Mahasiswa &amp; Dosen
+            Manajemen &amp; Monitoring Kelompok Proyek Perangkat Lunak
           </span>
         </div>
       </footer>
