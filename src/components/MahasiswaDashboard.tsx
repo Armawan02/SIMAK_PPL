@@ -67,6 +67,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
   const [commentDraft, setCommentDraft] = useState("");
   const [membershipRequests, setMembershipRequests] = useState<MembershipRequest[]>([]);
+  const [requestRoles, setRequestRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -110,7 +111,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
       setMembers(memberList);
     });
 
-    const canReviewMembers = currentUser.role === "dosen" || (currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim);
+    const canReviewMembers = currentUser.role === "admin" || currentUser.role === "dosen" || (currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim);
     const unsubRequests = canReviewMembers
       ? subscribeToMembershipRequests(group.id, (requestList) => {
           setMembershipRequests(requestList.filter((request) => request.status === "pending"));
@@ -137,7 +138,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const doneTasks = tasks.filter((t) => t.status === "done").length;
   const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
   const isProjectManager = currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim;
-  const canReviewMembers = currentUser.role === "dosen" || isProjectManager;
+  const canReviewMembers = currentUser.role === "admin" || currentUser.role === "dosen" || isProjectManager;
   const canManageMembers = isProjectManager;
   const canManageTask = (task?: Task) => {
     if (currentUser.role === "dosen") return false;
@@ -271,9 +272,10 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
 
   const handleMembershipDecision = async (request: MembershipRequest, approved: boolean) => {
     if (!canReviewMembers) return;
+    if (!approved && !window.confirm(`Tolak permintaan bergabung dari ${request.name}?`)) return;
     try {
       if (approved) {
-        await approveMembershipRequest(request);
+        await approveMembershipRequest(request, requestRoles[request.id] || "Anggota Tim");
         setRoleActionNotice(`${request.name} disetujui bergabung ke kelompok.`);
       } else {
         await rejectMembershipRequest(request);
@@ -422,7 +424,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
                 <span className="font-medium">8 Peran Tim</span>
               </button>
-              {canManageMembers && (
+              {canReviewMembers && (
                 <button
                   onClick={() => {
                     setMemberModalTab("roster");
@@ -431,7 +433,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                   className="px-2 py-1 rounded-xl border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 hover:border-slate-500 text-xs flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Kelola Anggota</span>
+                  <span>{canManageMembers ? "Kelola Anggota" : "Verifikasi Anggota"}</span>
                 </button>
               )}
             </div>
@@ -882,11 +884,20 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                       <div key={request.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-950/70 border border-slate-800">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-slate-100 truncate">{request.name}</p>
-                          <p className="text-[10px] text-slate-400">{request.nim} · {request.roleInGroup}</p>
+                          <p className="text-[10px] text-slate-400">{request.nim}</p>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button type="button" onClick={() => handleMembershipDecision(request, true)} className="px-2 py-1 rounded-lg bg-emerald-600 text-white text-[10px] font-semibold">Terima</button>
-                          <button type="button" onClick={() => handleMembershipDecision(request, false)} className="px-2 py-1 rounded-lg bg-rose-600/80 text-white text-[10px] font-semibold">Tolak</button>
+                        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                          <select
+                            value={requestRoles[request.id] || "Anggota Tim"}
+                            onChange={(event) => setRequestRoles((current) => ({ ...current, [request.id]: event.target.value }))}
+                            className="min-h-10 max-w-40 rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 text-xs text-slate-200"
+                            aria-label={`Role untuk ${request.name}`}
+                          >
+                            <option value="Anggota Tim">Anggota Tim</option>
+                            {OFFICIAL_TEAM_ROLES.map((role) => <option key={role.id} value={role.role}>{role.role}</option>)}
+                          </select>
+                          <button type="button" onClick={() => handleMembershipDecision(request, true)} className="min-h-10 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-md hover:bg-emerald-500">Terima</button>
+                          <button type="button" onClick={() => handleMembershipDecision(request, false)} className="min-h-10 rounded-lg bg-rose-600/80 px-4 text-xs font-bold text-white shadow-md hover:bg-rose-500">Tolak</button>
                         </div>
                       </div>
                     ))}

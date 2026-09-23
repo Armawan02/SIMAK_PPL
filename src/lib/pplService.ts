@@ -20,7 +20,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, db, firebaseDatabaseId, firebaseProjectId } from "./firebase";
-import { Activity, User, Group, GroupMember, MembershipRequest, Task, TaskComment, TaskStatus, UserRole } from "../types";
+import { Activity, User, Group, GroupMember, MembershipRequest, Task, TaskComment, TaskStatus, UserRole, OFFICIAL_TEAM_ROLES } from "../types";
 
 // Empty initializer - no dummy data for production
 export async function seedInitialDataIfEmpty(): Promise<void> {
@@ -242,14 +242,15 @@ export function subscribeToMembershipRequests(
   }, () => callback([]));
 }
 
-export async function approveMembershipRequest(request: MembershipRequest): Promise<void> {
+export async function approveMembershipRequest(request: MembershipRequest, roleInGroup: string): Promise<void> {
+  const roleDescription = OFFICIAL_TEAM_ROLES.find((role) => role.role === roleInGroup)?.description || "Bertanggung jawab dalam pengerjaan dan koordinasi modul tim proyek perangkat lunak.";
   const memberId = `member-${request.nim}`;
   await setDoc(doc(db, "groups", request.groupId, "members", memberId), {
     groupId: request.groupId,
     nim: request.nim,
     name: request.name,
-    roleInGroup: request.roleInGroup,
-    roleDescription: request.roleDescription,
+    roleInGroup,
+    roleDescription,
     id: memberId,
     approvalRequestId: request.id,
   });
@@ -258,7 +259,7 @@ export async function approveMembershipRequest(request: MembershipRequest): Prom
     membershipStatus: "approved",
     pendingGroupId: deleteField(),
   });
-  await updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "approved" });
+  await updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "approved", roleInGroup, roleDescription });
   await addActivity(request.groupId, `${request.name} diterima sebagai anggota kelompok.`);
 }
 
@@ -266,6 +267,22 @@ export function rejectMembershipRequest(request: MembershipRequest): Promise<voi
   return updateDoc(doc(db, "groups", request.groupId, "joinRequests", request.id), { status: "rejected" })
     .then(() => updateDoc(doc(db, "users", request.userId), { membershipStatus: "rejected" }))
     .then(() => addActivity(request.groupId, `Permintaan ${request.name} ditolak.`));
+}
+
+export async function resubmitMembershipRequest(groupId: string, user: User): Promise<void> {
+  if (!auth.currentUser) throw new Error("Pengguna belum login.");
+  const requestRef = doc(db, "groups", groupId, "joinRequests", auth.currentUser.uid);
+  await updateDoc(requestRef, {
+    status: "pending",
+    roleInGroup: "Anggota Tim",
+    roleDescription: "",
+    createdAt: new Date().toISOString(),
+  });
+  await updateDoc(doc(db, "users", auth.currentUser.uid), {
+    membershipStatus: "pending",
+    pendingGroupId: groupId,
+  });
+  await addActivity(groupId, `${user.name} mengajukan kembali permintaan bergabung.`);
 }
 
 // Live database diagnostic stats

@@ -498,9 +498,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
                         <option key={g.id} value={g.id}>{g.name} - {g.projectTitle}</option>
                       ))}
                     </select>
-                    <div className="rounded-xl bg-blue-950/40 border border-blue-500/20 px-3 py-2 text-[11px] text-blue-200">
-                      Peran Project Manager hanya dapat ditetapkan oleh dosen.
-                    </div>
                   </>
                 ) : (
                   <p className="text-[11px] text-amber-300 bg-amber-950/40 border border-amber-500/20 px-3 py-2 rounded-xl">

@@ -6,7 +6,7 @@ import { AuthScreen } from "./components/AuthScreen";
 import { DosenDashboard } from "./components/DosenDashboard";
 import { MahasiswaDashboard } from "./components/MahasiswaDashboard";
 import { auth } from "./lib/firebase";
-import { subscribeToGroups, subscribeToAuthenticatedUser, logoutUser } from "./lib/pplService";
+import { subscribeToGroups, subscribeToAuthenticatedUser, logoutUser, resubmitMembershipRequest } from "./lib/pplService";
 import { ArrowLeft, Clock3, FolderKanban, XCircle } from "lucide-react";
 
 export default function App() {
@@ -80,6 +80,15 @@ export default function App() {
     await logoutUser();
     setCurrentUser(null);
     setSelectedGroup(null);
+  };
+
+  const handleResubmitMembership = async () => {
+    if (!currentUser?.pendingGroupId) return;
+    try {
+      await resubmitMembershipRequest(currentUser.pendingGroupId, currentUser);
+    } catch (error) {
+      console.error("Failed to resubmit membership request:", error);
+    }
   };
 
   const handleOpenGroupKanbanFromDosen = (group: Group) => {
@@ -163,6 +172,13 @@ export default function App() {
               <p className="text-xs text-slate-400 leading-relaxed">
                 Silakan hubungi dosen atau Project Manager untuk mengetahui alasannya dan mengajukan permintaan kembali.
               </p>
+              <button
+                type="button"
+                onClick={handleResubmitMembership}
+                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500"
+              >
+                Ajukan Kembali Permintaan
+              </button>
             </div>
           ) : selectedGroup ? (
             <MahasiswaDashboard
