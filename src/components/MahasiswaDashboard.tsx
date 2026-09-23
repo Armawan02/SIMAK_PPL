@@ -297,7 +297,8 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
       await updateTaskComment(group.id, openCommentsTaskId, editingCommentId, commentDraft);
       setEditingCommentId(null);
     } else {
-      await addTaskComment(group.id, openCommentsTaskId, currentUser, commentDraft);
+      const commentedTask = tasks.find((task) => task.id === openCommentsTaskId);
+      await addTaskComment(group.id, openCommentsTaskId, commentedTask?.title || "Tugas tanpa judul", currentUser, commentDraft);
     }
     setCommentDraft("");
   };

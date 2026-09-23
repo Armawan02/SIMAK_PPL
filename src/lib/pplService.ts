@@ -11,6 +11,7 @@ import {
   onSnapshot,
   query,
   orderBy,
+  limit,
   Unsubscribe
 } from "firebase/firestore";
 import {
@@ -73,24 +74,31 @@ export async function addActivity(groupId: string, message: string): Promise<voi
 }
 
 export function subscribeToActivities(groupId: string, callback: (activities: Activity[]) => void): Unsubscribe {
-  return onSnapshot(collection(db, "groups", groupId, "activities"), (snapshot) => {
+  const activitiesQuery = query(
+    collection(db, "groups", groupId, "activities"),
+    orderBy("createdAt", "desc"),
+    limit(20)
+  );
+  return onSnapshot(activitiesQuery, (snapshot) => {
     const activities = snapshot.docs
-      .map((item) => ({ id: item.id, ...(item.data() as Omit<Activity, "id">) }))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 12);
+      .map((item) => ({ id: item.id, ...(item.data() as Omit<Activity, "id">) }));
     callback(activities);
   }, () => callback([]));
 }
 
 export function subscribeToTaskComments(groupId: string, taskId: string, callback: (comments: TaskComment[]) => void): Unsubscribe {
-  return onSnapshot(collection(db, "groups", groupId, "tasks", taskId, "comments"), (snapshot) => {
+  const commentsQuery = query(
+    collection(db, "groups", groupId, "tasks", taskId, "comments"),
+    orderBy("createdAt", "desc"),
+    limit(50)
+  );
+  return onSnapshot(commentsQuery, (snapshot) => {
     callback(snapshot.docs.map((item) => ({ id: item.id, ...(item.data() as Omit<TaskComment, "id">) }))
-      .filter((comment) => Boolean(comment.authorId))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      .filter((comment) => Boolean(comment.authorId)));
   }, () => callback([]));
 }
 
-export async function addTaskComment(groupId: string, taskId: string, author: User, message: string): Promise<void> {
+export async function addTaskComment(groupId: string, taskId: string, taskTitle: string, author: User, message: string): Promise<void> {
   await addDoc(collection(db, "groups", groupId, "tasks", taskId, "comments"), {
     taskId,
     authorId: author.id,
@@ -99,7 +107,7 @@ export async function addTaskComment(groupId: string, taskId: string, author: Us
     message: message.trim(),
     createdAt: new Date().toISOString(),
   });
-  await addActivity(groupId, `${author.name} menambahkan komentar pada tugas.`);
+  await addActivity(groupId, `${author.name} mengomentari tugas "${taskTitle}".`);
 }
 
 export async function updateTaskComment(groupId: string, taskId: string, commentId: string, message: string): Promise<void> {
