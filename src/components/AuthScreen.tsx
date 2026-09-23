@@ -87,7 +87,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess, allGroups }) 
       } else if (result.reason === "not_found") {
         setUnregisteredNotice({ id: cleanId, role: selectedRole });
         setError(
-          `${selectedRole === "dosen" ? "NIP" : "NIM"} "${cleanId}" belum terdaftar di Cloud Firestore. Akun baru harus didaftarkan sekali melalui tab 'Daftar Akun Baru'.`
+          `${selectedRole === "dosen" ? "NIP" : "NIM"} "${cleanId}" belum terhubung ke akun login. Data lama di Firestore tidak otomatis menjadi akun Firebase Authentication. Silakan daftarkan ulang akun ini atau minta administrator melakukan migrasi.`
         );
       } else if (result.reason === "role_mismatch") {
         const correctRoleText = result.userRole === "mahasiswa" ? "Mahasiswa" : "Dosen Pengampu";

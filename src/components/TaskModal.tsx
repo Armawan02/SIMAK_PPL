@@ -9,6 +9,7 @@ interface TaskModalProps {
   initialTask?: Task | null;
   groupId: string;
   members: GroupMember[];
+  canChangeStatus?: boolean;
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({
@@ -18,6 +19,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   initialTask,
   groupId,
   members,
+  canChangeStatus = true,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -185,16 +187,22 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               <label className="block text-xs font-medium text-slate-300 mb-1">
                 Kolom Status Awal
               </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
-              >
-                <option value="todo">To Do (Belum)</option>
-                <option value="in_progress">In Progress (Dikerjakan)</option>
-                <option value="review">Review (Pemeriksaan)</option>
-                <option value="done">Done (Selesai)</option>
-              </select>
+              {canChangeStatus ? (
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="todo">To Do (Belum)</option>
+                  <option value="in_progress">In Progress (Dikerjakan)</option>
+                  <option value="review">Review (Pemeriksaan)</option>
+                  <option value="done">Done (Selesai)</option>
+                </select>
+              ) : (
+                <div className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-300">
+                  To Do (Belum)
+                </div>
+              )}
             </div>
           </div>
 

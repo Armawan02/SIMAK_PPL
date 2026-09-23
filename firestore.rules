@@ -19,6 +19,11 @@ service cloud.firestore {
         && profile().groupId == groupId;
     }
 
+    function isProjectManager(groupId) {
+      return isStudentInGroup(groupId)
+        && get(/databases/$(database)/documents/groups/$(groupId)).data.leaderNim == profile().nim;
+    }
+
     match /users/{userId} {
       allow create: if signedIn() && request.auth.uid == userId
         && request.resource.data.role == 'mahasiswa'
@@ -51,7 +56,14 @@ service cloud.firestore {
 
       match /tasks/{taskId} {
         allow read: if signedIn();
-        allow write: if isDosen() || isStudentInGroup(groupId);
+        allow create: if isProjectManager(groupId)
+          || (isStudentInGroup(groupId) && request.resource.data.status == 'todo');
+        allow update: if isProjectManager(groupId)
+          || (isStudentInGroup(groupId)
+            && resource.data.status == 'todo'
+            && request.resource.data.status == 'todo');
+        allow delete: if isProjectManager(groupId)
+          || (isStudentInGroup(groupId) && resource.data.status == 'todo');
       }
     }
 

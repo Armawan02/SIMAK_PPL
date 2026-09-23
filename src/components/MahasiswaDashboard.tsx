@@ -107,6 +107,11 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((t) => t.status === "done").length;
   const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const isProjectManager = currentUser.role === "mahasiswa" && group.leaderNim === currentUser.nim;
+  const canManageTask = (task?: Task) => {
+    if (currentUser.role === "dosen") return false;
+    return isProjectManager || task?.status === "todo";
+  };
 
   // Filtered Tasks
   const filteredTasks = tasks.filter((t) => {
@@ -152,6 +157,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   ];
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    if (!isProjectManager) return;
     try {
       await updateTaskStatus(group.id, taskId, newStatus);
     } catch (err) {
@@ -160,6 +166,8 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!canManageTask(task)) return;
     if (confirm("Apakah Anda yakin ingin menghapus tugas ini?")) {
       try {
         await deleteTask(group.id, taskId);
@@ -170,6 +178,8 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
   };
 
   const handleSaveTask = async (taskData: Omit<Task, "id" | "createdAt" | "updatedAt">) => {
+    if (editingTask && !canManageTask(editingTask)) return;
+    if (!editingTask && currentUser.role === "dosen") return;
     if (editingTask) {
       await updateTaskDetails(group.id, editingTask.id, taskData);
     } else {
@@ -432,16 +442,18 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
         </div>
 
         {/* Add Task Button */}
-        <button
-          onClick={() => {
-            setEditingTask(null);
-            setIsTaskModalOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Tugas</span>
-        </button>
+        {currentUser.role === "mahasiswa" && (
+          <button
+            onClick={() => {
+              setEditingTask(null);
+              setIsTaskModalOpen(true);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Tugas</span>
+          </button>
+        )}
       </div>
 
       {/* Real-time sync banner info */}
@@ -476,16 +488,18 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                   </span>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setEditingTask(null);
-                    setIsTaskModalOpen(true);
-                  }}
-                  title="Tambah tugas ke kolom ini"
-                  className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                {currentUser.role === "mahasiswa" && col.status === "todo" && (
+                  <button
+                    onClick={() => {
+                      setEditingTask(null);
+                      setIsTaskModalOpen(true);
+                    }}
+                    title="Tambah tugas ke kolom ini"
+                    className="p-1 text-slate-500 hover:text-slate-300 hover:bg-slate-800 rounded transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                )}
               </div>
 
               {/* Tasks List inside Column */}
@@ -504,25 +518,27 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                       <div className="flex items-center justify-between gap-2 mb-2">
                         {getPriorityBadge(task.priority)}
 
-                        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => {
-                              setEditingTask(task);
-                              setIsTaskModalOpen(true);
-                            }}
-                            title="Edit Tugas"
-                            className="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            title="Hapus Tugas"
-                            className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        {canManageTask(task) && (
+                          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setEditingTask(task);
+                                setIsTaskModalOpen(true);
+                              }}
+                              title="Edit Tugas"
+                              className="p-1 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              title="Hapus Tugas"
+                              className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Title & Description */}
@@ -553,9 +569,10 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                       </div>
 
                       {/* Quick Move Status Arrows */}
-                      <div className="mt-3 pt-2 border-t border-slate-900/80 flex items-center justify-between text-[11px]">
-                        <span className="text-[10px] text-slate-500">Pindah Status:</span>
-                        <div className="flex items-center gap-1">
+                      {isProjectManager && (
+                        <div className="mt-3 pt-2 border-t border-slate-900/80 flex items-center justify-between text-[11px]">
+                          <span className="text-[10px] text-slate-500">Pindah Status:</span>
+                          <div className="flex items-center gap-1">
                           {col.status !== "todo" && (
                             <button
                               onClick={() => {
@@ -599,8 +616,9 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
                               <ChevronRight className="w-3 h-3" />
                             </button>
                           )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -621,6 +639,7 @@ export const MahasiswaDashboard: React.FC<MahasiswaDashboardProps> = ({
         initialTask={editingTask}
         groupId={group.id}
         members={members}
+        canChangeStatus={isProjectManager}
       />
 
       {/* Member Management & Official Roles Modal */}
