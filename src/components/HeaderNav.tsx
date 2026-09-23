@@ -83,16 +83,6 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
                 )}
               </div>
 
-              {/* Switch Role / Account button */}
-              <button
-                onClick={onSwitchUser}
-                title="Ganti Akun / Switch User"
-                className="p-2 text-slate-400 hover:text-blue-400 hover:bg-slate-800/60 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-transparent hover:border-slate-700"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden md:inline text-xs font-medium">Ganti Akun</span>
-              </button>
-
               {/* Logout button */}
               <button
                 onClick={onLogout}
